@@ -17,5 +17,9 @@
             "error",
             4
         ]
-    }
+    },
+    "ignorePatterns": [
+        "**/wasmd_cpp.js",
+        "**/build/*"
+    ]
 }

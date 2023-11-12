@@ -7,11 +7,8 @@ export default {
     mode: 'development',
     context: path.resolve(DIRNAME, 'src'),
     entry: './index.ts',
-    resolve: {
-        extensions: ['.ts', '.js']
-    },
     output: {
-        filename: 'bundle.js',
+        filename: '[contenthash].js',
         path: path.resolve(DIRNAME, 'build'),
         clean: true
     },
