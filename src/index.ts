@@ -1,7 +1,18 @@
-import Module from './wasm/wasmd_cpp';
+// @ts-expect-error emscripten
+import Module from './wasm/module';
 
-Module().then((module) => {
-    const add = module.cwrap('add', 'number', ['number', 'number']);
-    const result = add(25, 12);
-    console.log(result);
+interface EmscriptenModule {
+    cwrap: typeof cwrap;
+    addFunction: typeof addFunction;
+}
+
+type IAdd = (_0: number, _1: number) => number;
+type IRun = (_0: string) => void;
+
+Module().then((module: EmscriptenModule) => {
+    const add: IAdd = module.cwrap('add', 'number', ['number', 'number']);
+    console.log(`add: ${add(25.0, 12.0)}`);
+    const multiply: number = module.addFunction((a: number, b: number) => { return a * b; }, 'fff');
+    const run: IRun = module.cwrap('run', null, ['string']);
+    run(multiply.toString());
 });
