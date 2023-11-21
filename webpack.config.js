@@ -1,16 +1,17 @@
 import path from 'path';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 
-const DIRNAME = path.resolve();
-
 export default {
     mode: 'development',
-    context: path.resolve(DIRNAME, 'src'),
+    context: path.resolve(path.resolve(), 'src'),
     entry: './index.ts',
     output: {
         filename: '[contenthash].js',
-        path: path.resolve(DIRNAME, 'build'),
+        path: path.resolve(path.resolve(), 'build'),
         clean: true
+    },
+    resolve: {
+        extensions: ['.js', '.ts']
     },
     module: {
         rules: [
@@ -22,7 +23,7 @@ export default {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            title: 'wasmd_web'
+            title: 'app'
         })
     ]
 };
