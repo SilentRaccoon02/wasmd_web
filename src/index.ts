@@ -1,5 +1,6 @@
 // @ts-expect-error emscripten
 import Module from './wasm/module';
+import WebSocketConnection from './WebSocketConnection';
 
 interface EmscriptenModule {
     cwrap: typeof cwrap;
@@ -16,3 +17,6 @@ Module().then((module: EmscriptenModule) => {
     const run: IRun = module.cwrap('run', null, ['string']);
     run(multiply.toString());
 });
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const webSocketConnection: WebSocketConnection = new WebSocketConnection();
