@@ -1,6 +1,6 @@
 export default interface DataObject {
     type: string;
-    from: string;
+    from: string | undefined;
     to: string;
-    data: any;
+    data: any | undefined;
 }
