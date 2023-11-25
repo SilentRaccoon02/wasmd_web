@@ -1,3 +1,5 @@
+import log from './Log'
+
 interface DataObject {
     type: string
     from: string | undefined
@@ -19,18 +21,18 @@ export default class Connections {
 
     public constructor () {
         this._server.binaryType = 'arraybuffer'
-        this._server.onopen = (event) => { console.log(event) }
-        this._server.onclose = (event) => { console.log(event) }
-        this._server.onerror = (event) => { console.log(event) }
-        this._server.onmessage = (event) => {
-            const jsonString = new TextDecoder().decode(event.data)
+        this._server.onopen = () => { log('server: open') }
+        this._server.onclose = () => { log('server: close') }
+        this._server.onerror = (error) => { console.log(error) }
+        this._server.onmessage = (message) => {
+            const jsonString = new TextDecoder().decode(message.data)
             const dataObject = JSON.parse(jsonString)
             this._actions.get(dataObject.type)?.(dataObject)
         }
 
         this._actions.set('uuid', (dataObject) => { this._uuid = dataObject.to })
         this._actions.set('nodes', (dataObject) => {
-            dataObject.data.forEach((uuid: string) => { this.initP2P(uuid) })
+            dataObject.data.forEach((uuid: string) => { this.requestP2P(uuid) })
         })
     }
 
@@ -40,8 +42,8 @@ export default class Connections {
         this._server.send(bytes)
     }
 
-    private initP2P (uuid: string): void {
-        console.log(uuid)
+    private requestP2P (uuid: string): void {
+        log(uuid)
     }
 
     private acceptP2P (dataObject: DataObject): void {

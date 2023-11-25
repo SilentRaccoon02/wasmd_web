@@ -1,6 +1,7 @@
 // @ts-expect-error emscripten
 import Module from './wasm/module'
 import Connections from './Connections'
+import './styles.css'
 
 interface EmscriptenModule {
     cwrap: typeof cwrap
