@@ -6,8 +6,6 @@
         "rootDir": "./src",
         "outDir": "./build",
         "removeComments": true,
-        "strictNullChecks": true,
-        "noImplicitAny": true,
-        "strictPropertyInitialization": true
+        "strict": true
     }
 }
