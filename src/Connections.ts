@@ -1,4 +1,4 @@
-import log from './Log'
+import { log, addNode, removeNode } from './Document'
 
 enum DataType {
     NODE_UUID = 'node-uuid',
@@ -34,24 +34,28 @@ export default class Connections {
 
     public constructor () {
         this._server.binaryType = 'arraybuffer'
-        this._server.onopen = () => { log('server: open') }
-        this._server.onclose = () => { log('server: close') }
+        this._server.onopen = () => { log('server : open') }
+        this._server.onclose = () => { log('server : close') }
         this._server.onerror = (error) => { console.log(error) }
         this._server.onmessage = (message) => {
             const jsonString = new TextDecoder().decode(message.data)
             const data = JSON.parse(jsonString)
             this._actions.get(data.type)?.(data)
-            log(`server: ${data.type} from ${data.from}`)
         }
 
         this._actions.set(DataType.NODE_UUID, (data) => { this._uuid = data.to })
-        this._actions.set(DataType.NODE_CLOSE, (data) => { this._nodes.delete(data.data) })
         this._actions.set(DataType.NODE_LIST, (data) => {
             data.data.forEach((uuid: string) => {
                 this.sendViaServer({ type: DataType.P2P_REQ, from: this._uuid, to: uuid, data: undefined })
                 this._nodes.set(uuid, { connection: undefined, channel: undefined })
             })
         })
+        this._actions.set(DataType.NODE_CLOSE, (data) => {
+            log(`server : close ${data.data}`)
+            this._nodes.delete(data.data)
+            removeNode(data.data)
+        })
+
         this._actions.set(DataType.P2P_REQ, this.reqP2P)
         this._actions.set(DataType.P2P_RES, this.resP2P)
         this._actions.set(DataType.P2P_ICE, this.iceP2P)
@@ -59,8 +63,13 @@ export default class Connections {
         this._actions.set(DataType.P2P_ANSWER, this.answerP2P)
     }
 
+    public readonly sendTestP2P = (): void => {
+        for (const node of this._nodes.values()) {
+            node.channel?.send(`p2p    : test from ${this._uuid}`)
+        }
+    }
+
     private sendViaServer (data: Data): void {
-        log(`sendViaServer: ${data.type} to ${data.to}`)
         const jsonString = JSON.stringify(data)
         const bytes = new TextEncoder().encode(jsonString)
         this._server.send(bytes)
@@ -82,8 +91,11 @@ export default class Connections {
             const node = this._nodes.get(uuid)
             const channel = channelEvent.channel
 
-            channel.onopen = () => { log('p2p: open') }
-            channel.onclose = () => { log('p2p: close') }
+            channel.onopen = () => {
+                log(`p2p    : open ${uuid}`)
+                addNode(uuid)
+            }
+            channel.onclose = () => { log(`p2p: close ${uuid}`) }
             channel.onerror = (error) => { console.log(error) }
             channel.onmessage = (message) => { log(message.data) }
 
@@ -109,8 +121,11 @@ export default class Connections {
             this.sendViaServer({ type: DataType.P2P_ICE, from: this._uuid, to: uuid, data: ice.candidate })
         }
 
-        channel.onopen = () => { log('p2p: open') }
-        channel.onclose = () => { log('p2p: close') }
+        channel.onopen = () => {
+            log(`p2p    : open ${uuid}`)
+            addNode(uuid)
+        }
+        channel.onclose = () => { log(`p2p: close ${uuid}`) }
         channel.onerror = (error) => { console.log(error) }
         channel.onmessage = (message) => { log(message.data) }
         this._nodes.set(uuid, { connection, channel })

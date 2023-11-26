@@ -1,4 +1,22 @@
+#test {
+    margin: 4px;
+    font-family: 'Consolas';
+}
+
+.node {
+    margin: 4px;
+    font-family: 'Consolas';
+    font-size: small;
+}
+
 .log {
     margin: 4px;
     font-family: 'Consolas';
+    font-size: small;
+    white-space: pre;
+}
+
+.empty {
+    height: 20px;
+    width: 100%;
 }

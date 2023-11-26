@@ -16,5 +16,9 @@ Module().then((module: EmscriptenModule) => {
     run(multiply.toString())
 })
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const connections = new Connections()
+const test = document.getElementById('test')
+
+if (test !== null) {
+    test.onclick = connections.sendTestP2P
+}
