@@ -1,13 +1,23 @@
 import log from './Log'
 
+enum DataType {
+    NODE_UUID = 'node-uuid',
+    NODE_LIST = 'node-list',
+    NODE_CLOSE = 'node-close',
+
+    P2P_REQ = 'p2p-req',
+    P2P_RES = 'p2p-res',
+    P2P_ICE = 'p2p-ice',
+    P2P_OFFER = 'p2p-offer',
+    P2P_ANSWER = 'p2p-answer'
+}
+
 interface Data {
-    type: string
+    type: DataType
     from: string | undefined
     to: string
     data: any | undefined
 }
-
-// TODO add enum
 
 interface IP2P {
     connection: RTCPeerConnection | undefined
@@ -20,7 +30,7 @@ export default class Connections {
     private _uuid: string | undefined = undefined
     private readonly _server = new WebSocket('ws://localhost:2512')
     private readonly _nodes = new Map<string, IP2P>()
-    private readonly _actions = new Map<string, IAction>()
+    private readonly _actions = new Map<DataType, IAction>()
 
     public constructor () {
         this._server.binaryType = 'arraybuffer'
@@ -34,19 +44,19 @@ export default class Connections {
             log(`server: ${data.type} from ${data.from}`)
         }
 
-        this._actions.set('uuid', (data) => { this._uuid = data.to })
-        this._actions.set('close', (data) => { this._nodes.delete(data.data) })
-        this._actions.set('nodes', (data) => {
+        this._actions.set(DataType.NODE_UUID, (data) => { this._uuid = data.to })
+        this._actions.set(DataType.NODE_CLOSE, (data) => { this._nodes.delete(data.data) })
+        this._actions.set(DataType.NODE_LIST, (data) => {
             data.data.forEach((uuid: string) => {
-                this.sendViaServer({ type: 'p2p-req', from: this._uuid, to: uuid, data: undefined })
+                this.sendViaServer({ type: DataType.P2P_REQ, from: this._uuid, to: uuid, data: undefined })
                 this._nodes.set(uuid, { connection: undefined, channel: undefined })
             })
         })
-        this._actions.set('p2p-req', this.reqP2P)
-        this._actions.set('p2p-res', this.resP2P)
-        this._actions.set('p2p-ice', this.iceP2P)
-        this._actions.set('p2p-offer', this.offerP2P)
-        this._actions.set('p2p-answer', this.answerP2P)
+        this._actions.set(DataType.P2P_REQ, this.reqP2P)
+        this._actions.set(DataType.P2P_RES, this.resP2P)
+        this._actions.set(DataType.P2P_ICE, this.iceP2P)
+        this._actions.set(DataType.P2P_OFFER, this.offerP2P)
+        this._actions.set(DataType.P2P_ANSWER, this.answerP2P)
     }
 
     private sendViaServer (data: Data): void {
@@ -65,7 +75,7 @@ export default class Connections {
         const connection = new RTCPeerConnection()
 
         connection.onicecandidate = (ice) => {
-            this.sendViaServer({ type: 'p2p-ice', from: this._uuid, to: uuid, data: ice.candidate })
+            this.sendViaServer({ type: DataType.P2P_ICE, from: this._uuid, to: uuid, data: ice.candidate })
         }
 
         connection.ondatachannel = (channelEvent) => {
@@ -83,7 +93,7 @@ export default class Connections {
         }
 
         this._nodes.set(uuid, { connection, channel: undefined })
-        this.sendViaServer({ type: 'p2p-res', from: this._uuid, to: uuid, data: undefined })
+        this.sendViaServer({ type: DataType.P2P_RES, from: this._uuid, to: uuid, data: undefined })
     }
 
     private readonly resP2P = (data: Data): void => {
@@ -96,7 +106,7 @@ export default class Connections {
         const channel = connection.createDataChannel('channel')
 
         connection.onicecandidate = (ice) => {
-            this.sendViaServer({ type: 'p2p-ice', from: this._uuid, to: uuid, data: ice.candidate })
+            this.sendViaServer({ type: DataType.P2P_ICE, from: this._uuid, to: uuid, data: ice.candidate })
         }
 
         channel.onopen = () => { log('p2p: open') }
@@ -109,7 +119,7 @@ export default class Connections {
             .then(async (offer) => { await connection.setLocalDescription(offer) })
             .then(() => {
                 this.sendViaServer({
-                    type: 'p2p-offer',
+                    type: DataType.P2P_OFFER,
                     from: this._uuid,
                     to: uuid,
                     data: connection.localDescription
@@ -144,7 +154,7 @@ export default class Connections {
             .then(async (answer) => { await connection.setLocalDescription(answer) })
             .then(() => {
                 this.sendViaServer({
-                    type: 'p2p-answer',
+                    type: DataType.P2P_ANSWER,
                     from: this._uuid,
                     to: uuid,
                     data: connection.localDescription
