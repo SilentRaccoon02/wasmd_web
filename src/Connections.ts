@@ -1,6 +1,6 @@
 import log from './Log'
 
-interface DataObject {
+interface Data {
     type: string
     from: string | undefined
     to: string
@@ -14,7 +14,7 @@ interface IP2P {
     channel: RTCDataChannel | undefined
 }
 
-type IAction = (dataObject: DataObject) => void
+type IAction = (data: Data) => void
 
 export default class Connections {
     private _uuid: string | undefined = undefined
@@ -29,15 +29,15 @@ export default class Connections {
         this._server.onerror = (error) => { console.log(error) }
         this._server.onmessage = (message) => {
             const jsonString = new TextDecoder().decode(message.data)
-            const dataObject = JSON.parse(jsonString)
-            this._actions.get(dataObject.type)?.(dataObject)
-            log(`server: ${dataObject.type} from ${dataObject.from}`)
+            const data = JSON.parse(jsonString)
+            this._actions.get(data.type)?.(data)
+            log(`server: ${data.type} from ${data.from}`)
         }
 
-        this._actions.set('uuid', (dataObject) => { this._uuid = dataObject.to })
-        this._actions.set('close', (dataObject) => { this._nodes.delete(dataObject.data) })
-        this._actions.set('nodes', (dataObject) => {
-            dataObject.data.forEach((uuid: string) => {
+        this._actions.set('uuid', (data) => { this._uuid = data.to })
+        this._actions.set('close', (data) => { this._nodes.delete(data.data) })
+        this._actions.set('nodes', (data) => {
+            data.data.forEach((uuid: string) => {
                 this.sendViaServer({ type: 'p2p-req', from: this._uuid, to: uuid, data: undefined })
                 this._nodes.set(uuid, { connection: undefined, channel: undefined })
             })
@@ -49,19 +49,19 @@ export default class Connections {
         this._actions.set('p2p-answer', this.answerP2P)
     }
 
-    private sendViaServer (dataObject: DataObject): void {
-        log(`sendViaServer: ${dataObject.type} to ${dataObject.to}`)
-        const jsonString = JSON.stringify(dataObject)
+    private sendViaServer (data: Data): void {
+        log(`sendViaServer: ${data.type} to ${data.to}`)
+        const jsonString = JSON.stringify(data)
         const bytes = new TextEncoder().encode(jsonString)
         this._server.send(bytes)
     }
 
-    private readonly reqP2P = (dataObject: DataObject): void => {
-        if (dataObject.from === undefined) {
+    private readonly reqP2P = (data: Data): void => {
+        if (data.from === undefined) {
             return
         }
 
-        const uuid = dataObject.from
+        const uuid = data.from
         const connection = new RTCPeerConnection()
 
         connection.onicecandidate = (ice) => {
@@ -86,12 +86,12 @@ export default class Connections {
         this.sendViaServer({ type: 'p2p-res', from: this._uuid, to: uuid, data: undefined })
     }
 
-    private readonly resP2P = (dataObject: DataObject): void => {
-        if (dataObject.from === undefined) {
+    private readonly resP2P = (data: Data): void => {
+        if (data.from === undefined) {
             return
         }
 
-        const uuid = dataObject.from
+        const uuid = data.from
         const connection = new RTCPeerConnection()
         const channel = connection.createDataChannel('channel')
 
@@ -117,27 +117,27 @@ export default class Connections {
             }).catch((reason) => { console.log(reason) })
     }
 
-    private readonly iceP2P = (dataObject: DataObject): void => {
-        if (dataObject.from === undefined) {
+    private readonly iceP2P = (data: Data): void => {
+        if (data.from === undefined) {
             return
         }
 
-        const uuid = dataObject.from
+        const uuid = data.from
         const connection = this._nodes.get(uuid)?.connection
 
-        connection?.addIceCandidate(dataObject.data)
+        connection?.addIceCandidate(data.data)
             .catch((reason) => { console.log(reason) })
     }
 
-    private readonly offerP2P = (dataObject: DataObject): void => {
-        if (dataObject.from === undefined) {
+    private readonly offerP2P = (data: Data): void => {
+        if (data.from === undefined) {
             return
         }
 
-        const uuid = dataObject.from
+        const uuid = data.from
         const connection = this._nodes.get(uuid)?.connection
 
-        connection?.setRemoteDescription(dataObject.data)
+        connection?.setRemoteDescription(data.data)
             .catch((reason) => { console.log(reason) })
 
         connection?.createAnswer()
@@ -152,15 +152,15 @@ export default class Connections {
             }).catch((reason) => { console.log(reason) })
     }
 
-    private readonly answerP2P = (dataObject: DataObject): void => {
-        if (dataObject.from === undefined) {
+    private readonly answerP2P = (data: Data): void => {
+        if (data.from === undefined) {
             return
         }
 
-        const uuid = dataObject.from
+        const uuid = data.from
         const connection = this._nodes.get(uuid)?.connection
 
-        connection?.setRemoteDescription(dataObject.data)
+        connection?.setRemoteDescription(data.data)
             .catch((reason) => { console.log(reason) })
     }
 }
