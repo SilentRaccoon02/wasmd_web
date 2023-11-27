@@ -28,7 +28,7 @@ type IAction = (data: Data) => void
 
 export default class Connections {
     private _uuid: string | undefined = undefined
-    private readonly _server = new WebSocket('ws://localhost:2512')
+    private readonly _server = new WebSocket(`ws://${window.location.host}`)
     private readonly _nodes = new Map<string, IP2P>()
     private readonly _actions = new Map<DataType, IAction>()
 
@@ -95,7 +95,7 @@ export default class Connections {
                 log(`p2p    : open ${uuid}`)
                 addNode(uuid)
             }
-            channel.onclose = () => { log(`p2p: close ${uuid}`) }
+            channel.onclose = () => { log(`p2p    : close ${uuid}`) }
             channel.onerror = (error) => { console.log(error) }
             channel.onmessage = (message) => { log(message.data) }
 
@@ -125,7 +125,7 @@ export default class Connections {
             log(`p2p    : open ${uuid}`)
             addNode(uuid)
         }
-        channel.onclose = () => { log(`p2p: close ${uuid}`) }
+        channel.onclose = () => { log(`p2p    : close ${uuid}`) }
         channel.onerror = (error) => { console.log(error) }
         channel.onmessage = (message) => { log(message.data) }
         this._nodes.set(uuid, { connection, channel })

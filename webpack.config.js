@@ -1,13 +1,15 @@
 import path from 'path'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 
+const DIR = path.resolve()
+
 export default {
     mode: 'development',
-    context: path.resolve(path.resolve(), 'src'),
+    context: path.resolve(DIR, 'src'),
     entry: './index.ts',
     output: {
         filename: '[contenthash].js',
-        path: path.resolve(path.resolve(), 'build'),
+        path: path.resolve(DIR, '..', 'wasmd_server', 'build', 'static'),
         clean: true
     },
     resolve: {
