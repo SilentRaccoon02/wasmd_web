@@ -26,7 +26,18 @@ interface IP2P {
 
 type IAction = (data: Data) => void
 
+const urls = [
+    'stun1.l.google.com:19302',
+    'stun2.l.google.com:19302',
+    'stun3.l.google.com:19302',
+    'stun4.l.google.com:19302'
+]
+
 export default class Connections {
+    private static readonly configuration = {
+        iceServers: urls.map((url: string) => { return { urls: `stun:${url}` } })
+    }
+
     private _uuid: string | undefined = undefined
     private readonly _server = new WebSocket(`ws://${window.location.host}`)
     private readonly _nodes = new Map<string, IP2P>()
@@ -81,9 +92,10 @@ export default class Connections {
         }
 
         const uuid = data.from
-        const connection = new RTCPeerConnection()
+        const connection = new RTCPeerConnection(Connections.configuration)
 
         connection.onicecandidate = (ice) => {
+            log(`ice    : > ${ice.candidate?.candidate}`)
             this.sendViaServer({ type: DataType.P2P_ICE, from: this._uuid, to: uuid, data: ice.candidate })
         }
 
@@ -114,10 +126,11 @@ export default class Connections {
         }
 
         const uuid = data.from
-        const connection = new RTCPeerConnection()
+        const connection = new RTCPeerConnection(Connections.configuration)
         const channel = connection.createDataChannel('channel')
 
         connection.onicecandidate = (ice) => {
+            log(`ice    : > ${ice.candidate?.candidate}`)
             this.sendViaServer({ type: DataType.P2P_ICE, from: this._uuid, to: uuid, data: ice.candidate })
         }
 
@@ -149,6 +162,7 @@ export default class Connections {
 
         const uuid = data.from
         const connection = this._nodes.get(uuid)?.connection
+        log(`ice    : < ${data.data?.candidate}`)
 
         connection?.addIceCandidate(data.data)
             .catch((reason) => { console.log(reason) })
