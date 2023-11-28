@@ -1,19 +1,30 @@
 #test {
     margin: 4px;
-    font-family: 'Consolas';
+    font-family: monospace;
 }
 
-.node {
+#nodes {
     margin: 4px;
-    font-family: 'Consolas';
+    font-family: monospace;
     font-size: small;
+    font-weight: bold;
 }
 
-.log {
+#logs {
     margin: 4px;
-    font-family: 'Consolas';
+    font-family: monospace;
     font-size: small;
     white-space: pre;
+}
+
+.log-green {
+    color: darkgreen;
+    font-weight: bold;
+}
+
+.log-red {
+    color: darkred;
+    font-weight: bold;
 }
 
 .empty {

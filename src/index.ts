@@ -1,7 +1,9 @@
 // @ts-expect-error emscripten
 import Module from './wasm/module'
-import Connections from './Connections'
 import './styles.css'
+import { Connections } from './Connections'
+import { DataType } from './Interfaces'
+import { updateStates } from './Document'
 
 interface EmscriptenModule {
     cwrap: typeof cwrap
@@ -20,5 +22,9 @@ const connections = new Connections()
 const test = document.getElementById('test')
 
 if (test !== null) {
-    test.onclick = connections.sendTestP2P
+    test.onclick = () => {
+        connections.sendViaP2P(DataType.P2P_TEST, '', undefined)
+    }
 }
+
+setInterval(() => { updateStates(connections.states()) }, 500)
