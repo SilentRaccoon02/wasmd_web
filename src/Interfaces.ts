@@ -22,3 +22,8 @@ export interface State {
     signaling: RTCSignalingState | undefined
     connection: RTCPeerConnectionState | undefined
 }
+
+export interface ExtendedModule extends EmscriptenModule {
+    cwrap: typeof cwrap
+    addFunction: typeof addFunction
+}

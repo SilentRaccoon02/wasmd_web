@@ -2,6 +2,7 @@
     "cSpell.words": [
         "cwrap",
         "emscripten",
+        "HEAPU",
         "singleline",
         "wasmd"
     ]

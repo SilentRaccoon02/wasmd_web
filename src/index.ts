@@ -1,10 +1,20 @@
-import './styles.css'
-import { Connections } from './Connections'
-import { DataType } from './Interfaces'
-import { updateStates } from './Document'
-import { App } from './App'
+// @ts-expect-error emscripten
+import Module from './wasm/module'
 
-const app = new App()
+import './styles.css'
+import { App } from './App'
+import { Connections } from './Connections'
+import { DataType, type ExtendedModule } from './Interfaces'
+import { log, updateStates } from './Document'
+
+Module().then((module: ExtendedModule) => {
+    // TODO init all here
+    log('WASM: initialized', 'log-green')
+
+    // eslint-disable-next-line
+    const app = new App(module)
+})
+
 const connections = new Connections()
 const test = document.getElementById('test')
 
