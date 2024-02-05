@@ -1,4 +1,4 @@
-#test {
+button {
     margin: 4px;
     font-family: monospace;
 }
@@ -32,15 +32,6 @@
     width: 100%;
 }
 
-#input-images {
-    margin: 4px;
-    font-family: monospace;
-}
-
-#queued-image {
-    margin: 4px;
-}
-
-#result-image {
-    margin: 4px;
+#input-files {
+    display: none;
 }
