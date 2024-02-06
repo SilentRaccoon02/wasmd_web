@@ -10,6 +10,13 @@ button {
     font-weight: bold;
 }
 
+#files {
+    margin: 4px;
+    font-family: monospace;
+    font-size: small;
+    font-weight: bold;
+}
+
 #logs {
     margin: 4px;
     font-family: monospace;
