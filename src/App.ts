@@ -1,31 +1,34 @@
 import { ModuleAdapter } from './ModuleAdapter'
-import { DataType, type ExtendedModule } from './Interfaces'
 import { log } from './Document'
 import { Connections } from './Connections'
 
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
+import { DataType } from './Interfaces'
 
 export class App {
     private readonly _moduleAdapter: ModuleAdapter
     private readonly _connections = new Connections()
+
     private readonly _inputFiles = document.getElementById('input-files') as HTMLInputElement
     private readonly _selectFiles = document.getElementById('select-files') as HTMLButtonElement
     private readonly _processFiles = document.getElementById('process-files') as HTMLButtonElement
     private readonly _downloadFiles = document.getElementById('download-files') as HTMLButtonElement
     private readonly _testConnections = document.getElementById('test-connections') as HTMLButtonElement
+
     private _selectCounter = 0
+    private _queuedCounter = 0
     private _resultCounter = 0
     private _startTime = 0
 
-    public constructor (module: ExtendedModule) {
-        this._moduleAdapter = new ModuleAdapter(module, (count: number) => {
-            const time = Math.floor((performance.now() - this._startTime) / 1000)
+    public constructor () {
+        this._moduleAdapter = new ModuleAdapter((count: number) => {
+            this._queuedCounter = count
+            this.updateProcess()
+        }, (count: number) => {
             this._resultCounter = count
-            this.updateProcess(time)
+            this.updateProcess()
         })
-
-        this._moduleAdapter.testModule()
 
         this._inputFiles.onchange = () => {
             const files = this._inputFiles.files
@@ -41,7 +44,6 @@ export class App {
         }
 
         this._processFiles.onclick = () => {
-            this._startTime = performance.now()
             const files = this._inputFiles.files
 
             if (files !== null && files.length > 0) {
@@ -63,9 +65,11 @@ export class App {
     }
 
     private processFiles (files: FileList): void {
+        this._startTime = performance.now()
+        log(`app: processing ${files.length} files`, 'log-green')
+
         for (const file of files) {
             this._moduleAdapter.processImage(file)
-            console.log('process')
         }
     }
 
@@ -85,11 +89,16 @@ export class App {
             .catch((reason) => { console.log(reason) })
     }
 
-    private updateProcess (time: number = 0): void {
+    private updateProcess (): void {
         const files = document.getElementById('files')
 
+        if (this._selectCounter === this._resultCounter) {
+            const time = Math.round((performance.now() - this._startTime) / 1000)
+            log(`app: completed in ${time} seconds`, 'log-green')
+        }
+
         if (files !== null) {
-            files.innerText = `selected ${this._selectCounter} result ${this._resultCounter} time ${time}`
+            files.innerText = `selected ${this._selectCounter} queued ${this._queuedCounter} result ${this._resultCounter}`
         }
     }
 
