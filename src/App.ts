@@ -25,7 +25,7 @@ export class App {
 
         this._ui.onDownloadFiles = () => {
             const files = this._moduleAdapter.getResult()
-            this._ui.addLog(`app: downloading ${files.length} files`)
+            this._ui.addLog(`ui: downloading ${files.length} files`)
 
             const zip = new JSZip()
             const folder = zip.folder('result')

@@ -14,7 +14,7 @@ export class UI {
     public constructor () {
         this._inputFiles.onchange = () => {
             const files = this._inputFiles.files
-            if (files !== null) { this.addLog(`app: selected ${files.length} files`) }
+            if (files !== null) { this.addLog(`ui: selected ${files.length} files`) }
         }
 
         this._selectFiles.onclick = () => {
@@ -25,10 +25,10 @@ export class UI {
             const files = this._inputFiles.files
 
             if (files !== null && files.length > 0) {
-                this.addLog(`processing ${files.length} files`)
+                this.addLog(`ui: processing ${files.length} files`)
                 this.onProcessFiles(files)
             } else {
-                this.addLog('no files selected')
+                this.addLog('ui: no files selected')
             }
         }
 
