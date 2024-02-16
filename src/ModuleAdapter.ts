@@ -1,17 +1,15 @@
+import { type ModuleState, THIS_NODE } from './Interfaces'
+
 export class ModuleAdapter {
-    private readonly _worker = new Worker(new URL('./ModuleWorker.ts', import.meta.url))
-    private readonly _resultImages = new Array<File>()
-
-    private readonly _updateResult: (count: number) => void
-    private readonly _updateQueued: (count: number) => void
-    private _resultCounter = 0
+    private readonly _moduleWorker = new Worker(new URL('./ModuleWorker.ts', import.meta.url))
+    private readonly _completeImages = new Array<File>()
     private _queuedCounter = 0
+    private _completeCounter = 0
 
-    public constructor (updateQueued: (count: number) => void, updateResult: (count: number) => void) {
-        this._updateResult = updateResult
-        this._updateQueued = updateQueued
+    public onUpdateState = (uuid: string, state: ModuleState): void => {}
 
-        this._worker.onmessage = (event) => {
+    public constructor () {
+        this._moduleWorker.onmessage = (event) => {
             const data = event.data
 
             const canvas = document.createElement('canvas')
@@ -22,10 +20,13 @@ export class ModuleAdapter {
 
             canvas.toBlob((blob) => {
                 if (blob !== null) {
-                    const file = new File([blob], `${this._resultCounter}.jpg`)
-                    this._resultImages.push(file)
-                    this._resultCounter++
-                    this._updateResult(this._resultCounter)
+                    const file = new File([blob], `${this._completeCounter}.jpg`)
+                    this._completeImages.push(file)
+                    this._completeCounter++
+                    this.onUpdateState(THIS_NODE, {
+                        queued: this._queuedCounter,
+                        complete: this._completeCounter
+                    })
                 }
             })
         }
@@ -39,7 +40,10 @@ export class ModuleAdapter {
 
         inImage.onload = () => {
             this._queuedCounter++
-            this._updateQueued(this._queuedCounter)
+            this.onUpdateState(THIS_NODE, {
+                queued: this._queuedCounter,
+                complete: this._completeCounter
+            })
 
             const canvas = document.createElement('canvas')
             const context = canvas.getContext('2d') as CanvasRenderingContext2D
@@ -48,11 +52,11 @@ export class ModuleAdapter {
             context.drawImage(inImage, 0, 0)
 
             const inData = context.getImageData(0, 0, inImage.width, inImage.height).data
-            this._worker.postMessage({ inData, width: inImage.width, height: inImage.height })
+            this._moduleWorker.postMessage({ inData, width: inImage.width, height: inImage.height })
         }
     }
 
     public getResult (): File[] {
-        return this._resultImages
+        return this._completeImages
     }
 }

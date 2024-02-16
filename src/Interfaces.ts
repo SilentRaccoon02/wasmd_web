@@ -1,3 +1,5 @@
+export const THIS_NODE = '00000000'
+
 export enum DataType {
     NODE_UUID = 'node-uuid',
     NODE_LIST = 'node-list',
@@ -18,9 +20,14 @@ export interface Data {
     data: any | undefined
 }
 
-export interface State {
+export interface ConnectionState {
     signaling: RTCSignalingState | undefined
     connection: RTCPeerConnectionState | undefined
+}
+
+export interface ModuleState {
+    queued: number
+    complete: number
 }
 
 export interface ExtendedModule extends EmscriptenModule {
