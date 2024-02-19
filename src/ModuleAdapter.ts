@@ -1,12 +1,12 @@
-import { type ModuleState, THIS_NODE } from './Interfaces'
+import { type ModuleState } from './Interfaces'
 
 export class ModuleAdapter {
     private readonly _moduleWorker = new Worker(new URL('./ModuleWorker.ts', import.meta.url))
-    private readonly _completeImages = new Array<File>()
     private _queuedCounter = 0
     private _completeCounter = 0
 
-    public onUpdateState = (uuid: string, state: ModuleState): void => {}
+    public onUpdateState = (state: ModuleState): void => {}
+    public onFileComplete = (uuid: string, blob: Blob): void => {}
 
     public constructor () {
         this._moduleWorker.onmessage = (event) => {
@@ -20,28 +20,27 @@ export class ModuleAdapter {
 
             canvas.toBlob((blob) => {
                 if (blob !== null) {
-                    const file = new File([blob], `${this._completeCounter}.jpg`)
-                    this._completeImages.push(file)
-                    this._completeCounter++
-                    this.onUpdateState(THIS_NODE, {
+                    this.onFileComplete(data.uuid, blob)
+                    this.onUpdateState({
                         queued: this._queuedCounter,
-                        complete: this._completeCounter
+                        complete: ++this._completeCounter
                     })
                 }
             })
         }
     }
 
-    public processImage (inFile: File): void {
+    public processFile (uuid: string, inFile: File | string): void {
         const inImage = new Image()
         const URLReader = new FileReader()
-        URLReader.readAsDataURL(inFile)
-        URLReader.onload = () => { inImage.src = URLReader.result as string }
+
+        URLReader.onload = () => {
+            inImage.src = URLReader.result as string
+        }
 
         inImage.onload = () => {
-            this._queuedCounter++
-            this.onUpdateState(THIS_NODE, {
-                queued: this._queuedCounter,
+            this.onUpdateState({
+                queued: ++this._queuedCounter,
                 complete: this._completeCounter
             })
 
@@ -52,11 +51,13 @@ export class ModuleAdapter {
             context.drawImage(inImage, 0, 0)
 
             const inData = context.getImageData(0, 0, inImage.width, inImage.height).data
-            this._moduleWorker.postMessage({ inData, width: inImage.width, height: inImage.height })
+            this._moduleWorker.postMessage({ uuid, inData, width: inImage.width, height: inImage.height })
         }
-    }
 
-    public getResult (): File[] {
-        return this._completeImages
+        if (typeof inFile === 'string') {
+            inImage.src = inFile
+        } else {
+            URLReader.readAsDataURL(inFile)
+        }
     }
 }

@@ -1,5 +1,3 @@
-export const THIS_NODE = '00000000'
-
 export enum DataType {
     NODE_UUID = 'node-uuid',
     NODE_LIST = 'node-list',
@@ -10,7 +8,9 @@ export enum DataType {
     P2P_ICE = 'p2p-ice',
     P2P_OFFER = 'p2p-offer',
     P2P_ANSWER = 'p2p-answer',
-    P2P_TEST = 'p2p-test'
+
+    FILE_PROCESS = 'file-process',
+    FILE_RESULT = 'file-result'
 }
 
 export interface Data {

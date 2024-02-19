@@ -18,7 +18,7 @@ export class Connections {
         ]
     }
 
-    private _uuid: string | undefined = undefined
+    private _uuid: string | undefined
     private readonly _server = new WebSocket(`ws://${window.location.host}`)
     private readonly _nodes = new Map<string, IP2P>()
     private readonly _actions = new Map<DataType, IAction>()
@@ -27,6 +27,8 @@ export class Connections {
     public onAddNode = (uuid: string): void => {}
     public onRemoveNode = (uuid: string): void => {}
     public onUpdateState = (uuid: string, state: ConnectionState): void => {}
+    public onReceiveViaP2P = (type: DataType, from: string, data: any): void => {}
+    public onUUID = (uuid: string): void => {}
 
     public constructor () {
         this._server.binaryType = 'arraybuffer'
@@ -39,7 +41,10 @@ export class Connections {
             this._actions.get(data.type)?.(data)
         }
 
-        this._actions.set(DataType.NODE_UUID, (data) => { this._uuid = data.to })
+        this._actions.set(DataType.NODE_UUID, (data) => {
+            this._uuid = data.to
+            this.onUUID(data.to)
+        })
         this._actions.set(DataType.NODE_LIST, (data) => {
             data.data.forEach((uuid: string) => {
                 this.sendViaServer(DataType.P2P_REQ, uuid, undefined)
@@ -58,10 +63,8 @@ export class Connections {
         this._actions.set(DataType.P2P_ICE, this.onIceP2P)
         this._actions.set(DataType.P2P_OFFER, this.onOfferP2P)
         this._actions.set(DataType.P2P_ANSWER, this.onAnswerP2P)
-        this._actions.set(DataType.P2P_TEST, (data) => {
-            if (data.from === undefined) { return }
-            this.onAddLog(`p2p: test ${data.from}`)
-        })
+        this._actions.set(DataType.FILE_PROCESS, this.receiveViaP2P)
+        this._actions.set(DataType.FILE_RESULT, this.receiveViaP2P)
     }
 
     public sendViaServer (type: DataType, to: string, data: any): void {
@@ -208,5 +211,9 @@ export class Connections {
         const jsonString = new TextDecoder().decode(message.data)
         const data = JSON.parse(jsonString)
         this._actions.get(data.type)?.(data)
+    }
+
+    private readonly receiveViaP2P = (data: Data): void => {
+        if (data.from !== undefined) { this.onReceiveViaP2P(data.type, data.from, data.data) }
     }
 }

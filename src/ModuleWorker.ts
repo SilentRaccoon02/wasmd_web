@@ -40,5 +40,5 @@ onmessage = (event) => {
     MODULE._free(inPointer)
     MODULE._free(outPointer)
 
-    postMessage({ outImage, width: data.width, height: data.height })
+    postMessage({ uuid: data.uuid, outImage, width: data.width, height: data.height })
 }
