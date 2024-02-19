@@ -65,6 +65,7 @@ export class Connections {
         this._actions.set(DataType.P2P_ANSWER, this.onAnswerP2P)
         this._actions.set(DataType.FILE_PROCESS, this.receiveViaP2P)
         this._actions.set(DataType.FILE_RESULT, this.receiveViaP2P)
+        this._actions.set(DataType.MODULE_STATE, this.receiveViaP2P)
     }
 
     public sendViaServer (type: DataType, to: string, data: any): void {

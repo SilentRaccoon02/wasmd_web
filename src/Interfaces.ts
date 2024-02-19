@@ -10,7 +10,8 @@ export enum DataType {
     P2P_ANSWER = 'p2p-answer',
 
     FILE_PROCESS = 'file-process',
-    FILE_RESULT = 'file-result'
+    FILE_RESULT = 'file-result',
+    MODULE_STATE = 'module-state'
 }
 
 export interface Data {

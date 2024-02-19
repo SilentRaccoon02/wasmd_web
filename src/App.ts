@@ -49,6 +49,9 @@ export class App {
                     const file = new File([blob], `${this._completeFiles.length}.jpg`)
                     this._completeFiles.push(file)
                 }).catch((reason) => { console.log(reason) })
+            } else if (type === DataType.MODULE_STATE) {
+                this._ui.updateModuleState(from, data)
+                this._scheduler.updateModuleState(from, data)
             }
         }
     }
@@ -118,6 +121,7 @@ export class App {
 
             this._ui.updateModuleState(this._uuid, state)
             this._scheduler.updateModuleState(this._uuid, state)
+            this._connections.sendViaP2P(DataType.MODULE_STATE, '', state)
         }
 
         this._moduleAdapter.onFileComplete = (uuid, file) => {
