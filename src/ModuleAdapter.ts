@@ -11,53 +11,33 @@ export class ModuleAdapter {
     public constructor () {
         this._moduleWorker.onmessage = (event) => {
             const data = event.data
-
-            const canvas = document.createElement('canvas')
-            const context = canvas.getContext('2d') as CanvasRenderingContext2D
-            canvas.width = data.width
-            canvas.height = data.height
-            context.putImageData(data.outImage, 0, 0)
-
-            canvas.toBlob((blob) => {
-                if (blob !== null) {
-                    this.onFileComplete(data.uuid, blob)
-                    this.onUpdateState({
-                        queued: this._queuedCounter,
-                        complete: ++this._completeCounter
-                    })
-                }
+            const blob = new Blob([data.array])
+            this.onFileComplete(data.uuid, blob)
+            this.onUpdateState({
+                queued: this._queuedCounter,
+                complete: ++this._completeCounter
             })
         }
     }
 
-    public processFile (uuid: string, inFile: File | string): void {
-        const inImage = new Image()
-        const URLReader = new FileReader()
-
-        URLReader.onload = () => {
-            inImage.src = URLReader.result as string
-        }
-
-        inImage.onload = () => {
-            this.onUpdateState({
-                queued: ++this._queuedCounter,
-                complete: this._completeCounter
-            })
-
-            const canvas = document.createElement('canvas')
-            const context = canvas.getContext('2d') as CanvasRenderingContext2D
-            canvas.width = inImage.width
-            canvas.height = inImage.height
-            context.drawImage(inImage, 0, 0)
-
-            const inData = context.getImageData(0, 0, inImage.width, inImage.height).data
-            this._moduleWorker.postMessage({ uuid, inData, width: inImage.width, height: inImage.height })
-        }
-
-        if (typeof inFile === 'string') {
-            inImage.src = inFile
+    public processFile (uuid: string, file: File | string): void {
+        if (typeof file === 'string') {
+            fetch(file).then(async res => await res.arrayBuffer()).then((arrayBuffer) => {
+                this._moduleWorker.postMessage({ uuid, array: arrayBuffer })
+            }).catch((reason) => { console.log(reason) })
         } else {
-            URLReader.readAsDataURL(inFile)
+            const bufferReader = new FileReader()
+
+            bufferReader.onload = () => {
+                this._moduleWorker.postMessage({ uuid, array: bufferReader.result })
+            }
+
+            bufferReader.readAsArrayBuffer(file)
         }
+
+        this.onUpdateState({
+            queued: ++this._queuedCounter,
+            complete: this._completeCounter
+        })
     }
 }

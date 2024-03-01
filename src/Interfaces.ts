@@ -32,6 +32,9 @@ export interface ModuleState {
 }
 
 export interface ExtendedModule extends EmscriptenModule {
+    lengthBytesUTF8: typeof lengthBytesUTF8
+    stringToUTF8: typeof stringToUTF8
+    setValue: typeof setValue
     cwrap: typeof cwrap
-    addFunction: typeof addFunction
+    FS: typeof FS
 }

@@ -6,39 +6,43 @@ let MODULE: ExtendedModule
 
 Module().then((emscriptenModule: ExtendedModule) => {
     MODULE = emscriptenModule
-
-    // test module
-    const testArray = MODULE.cwrap('testArray', 'number', ['number', 'number'])
-
-    const inData = new Uint8Array([2, 4, 6, 8])
-    const dataSize = inData.length * inData.BYTES_PER_ELEMENT
-    const inPointer = MODULE._malloc(dataSize)
-    MODULE.HEAPU8.set(inData, inPointer)
-
-    const outPointer = testArray(inPointer, inData.length)
-    const outData = MODULE.HEAPU8.subarray(outPointer, outPointer + dataSize)
-    console.log(outData)
-
-    MODULE._free(inPointer)
-    MODULE._free(outPointer)
 })
+
+function strToPtr (str: string): number {
+    const size = MODULE.lengthBytesUTF8(str) + 1
+    const ptr = MODULE._malloc(size)
+    MODULE.stringToUTF8(str, ptr, size)
+
+    return ptr
+}
+
+function callWithArgs (strs: string[]): number {
+    const ptrs = strs.map(str => strToPtr(str))
+    const args = MODULE._malloc(ptrs.length * 4) // 4 bytes per pointer
+    ptrs.forEach((ptr, i) => { MODULE.setValue(args + i * 4, ptr, 'i32') })
+
+    const main = MODULE.cwrap('run', 'number', ['number', 'number'])
+    const ret = main(ptrs.length, args)
+
+    ptrs.forEach((ptr) => { MODULE._free(ptr) })
+    MODULE._free(args)
+
+    return ret
+}
 
 onmessage = (event) => {
     if (MODULE === undefined) { return }
 
     const data = event.data
-    const processImage = MODULE.cwrap('processImage', 'number', ['number', 'number', 'number'])
+    const start = performance.now()
+    MODULE.FS.writeFile('in', new Uint8Array(data.array))
 
-    const dataSize = data.inData.length * data.inData.BYTES_PER_ELEMENT
-    const inPointer = MODULE._malloc(dataSize)
-    MODULE.HEAPU8.set(data.inData, inPointer)
+    if (callWithArgs(['name', 'in', 'out']) !== 0) { return }
 
-    const outPointer = processImage(inPointer, data.width, data.height)
-    const outData = MODULE.HEAPU8.subarray(outPointer, outPointer + dataSize)
-    const outImage = new ImageData(new Uint8ClampedArray(outData), data.width, data.height)
+    const array = MODULE.FS.readFile('out')
+    MODULE.FS.unlink('in')
+    MODULE.FS.unlink('out')
 
-    MODULE._free(inPointer)
-    MODULE._free(outPointer)
-
-    postMessage({ uuid: data.uuid, outImage, width: data.width, height: data.height })
+    console.log(`complete in ${Math.round((performance.now() - start) / 1000)} seconds`)
+    postMessage({ uuid: data.uuid, array })
 }

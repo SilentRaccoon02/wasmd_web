@@ -3,7 +3,9 @@
         "cwrap",
         "emscripten",
         "HEAPU",
+        "ptrs",
         "singleline",
+        "strs",
         "wasmd"
     ]
 }
