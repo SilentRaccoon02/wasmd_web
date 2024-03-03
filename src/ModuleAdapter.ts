@@ -5,6 +5,7 @@ export class ModuleAdapter {
     private _queuedCounter = 0
     private _completeCounter = 0
 
+    public onAddLog = (text: string): void => {}
     public onUpdateState = (state: ModuleState): void => {}
     public onFileComplete = (uuid: string, blob: Blob): void => {}
 
@@ -12,6 +13,7 @@ export class ModuleAdapter {
         this._moduleWorker.onmessage = (event) => {
             const data = event.data
             const blob = new Blob([data.array])
+            this.onAddLog(`app: complete in ${data.time} seconds`)
             this.onFileComplete(data.uuid, blob)
             this.onUpdateState({
                 queued: this._queuedCounter,

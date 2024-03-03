@@ -43,6 +43,6 @@ onmessage = (event) => {
     MODULE.FS.unlink('in')
     MODULE.FS.unlink('out')
 
-    console.log(`complete in ${Math.round((performance.now() - start) / 1000)} seconds`)
-    postMessage({ uuid: data.uuid, array })
+    const time = Math.round((performance.now() - start) / 1000)
+    postMessage({ uuid: data.uuid, array, time })
 }

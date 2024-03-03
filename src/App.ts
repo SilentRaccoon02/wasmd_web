@@ -116,6 +116,10 @@ export class App {
     }
 
     private readonly initModuleAdapter = (thisUUID: string): void => {
+        this._moduleAdapter.onAddLog = (text) => {
+            this._ui.addLog(text)
+        }
+
         this._moduleAdapter.onUpdateState = (state) => {
             if (this._uuid === undefined) { return }
 
