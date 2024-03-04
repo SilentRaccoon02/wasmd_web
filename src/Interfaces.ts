@@ -8,6 +8,7 @@ export enum DataType {
     P2P_ICE = 'p2p-ice',
     P2P_OFFER = 'p2p-offer',
     P2P_ANSWER = 'p2p-answer',
+    P2P_CHUNK = 'p2p-chunk',
 
     FILE_PROCESS = 'file-process',
     FILE_RESULT = 'file-result',

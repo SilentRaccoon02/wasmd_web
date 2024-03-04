@@ -1,4 +1,5 @@
 import { DataType, type Data, type ConnectionState } from './Interfaces'
+import { v4 as uuidv4 } from 'uuid'
 
 interface IP2P {
     connection: RTCPeerConnection | undefined
@@ -6,6 +7,13 @@ interface IP2P {
 }
 
 type IAction = (data: Data) => void
+
+interface IStorages {
+    type: DataType
+    from: string
+    total: number
+    chunks: Map<number, string>
+}
 
 export class Connections {
     private static readonly configuration = {
@@ -18,10 +26,13 @@ export class Connections {
         ]
     }
 
+    private static readonly chunkSize = 10000
+
     private _uuid: string | undefined
     private readonly _server = new WebSocket(`ws://${window.location.host}`)
     private readonly _nodes = new Map<string, IP2P>()
     private readonly _actions = new Map<DataType, IAction>()
+    private readonly _storages = new Map<string, IStorages>()
 
     public onAddLog = (text: string): void => {}
     public onAddNode = (uuid: string): void => {}
@@ -63,6 +74,7 @@ export class Connections {
         this._actions.set(DataType.P2P_ICE, this.onIceP2P)
         this._actions.set(DataType.P2P_OFFER, this.onOfferP2P)
         this._actions.set(DataType.P2P_ANSWER, this.onAnswerP2P)
+        this._actions.set(DataType.P2P_CHUNK, this.onChunkP2P)
         this._actions.set(DataType.FILE_PROCESS, this.receiveViaP2P)
         this._actions.set(DataType.FILE_RESULT, this.receiveViaP2P)
         this._actions.set(DataType.MODULE_STATE, this.receiveViaP2P)
@@ -84,9 +96,35 @@ export class Connections {
             if (node === undefined) { return }
             if (node.connection?.connectionState !== 'connected') { return }
 
-            const jsonString = JSON.stringify({ type, from: this._uuid, to, data })
-            const bytes = new TextEncoder().encode(jsonString)
-            node.channel?.send(bytes)
+            if (typeof data === 'string' && data.length > Connections.chunkSize) {
+                const count = Math.floor(data.length / Connections.chunkSize)
+                const last = data.length - count * Connections.chunkSize
+                const uuid = uuidv4()
+
+                const chunks = new Map<number, string>()
+                let offset = 0
+
+                for (let i = 0; i < count; ++i) {
+                    chunks.set(i, data.substring(offset, offset + Connections.chunkSize))
+                    offset += Connections.chunkSize
+                }
+
+                chunks.set(count, data.substring(offset, offset + last))
+
+                for (const chunk of chunks.entries()) {
+                    this.sendViaP2P(DataType.P2P_CHUNK, to, {
+                        uuid,
+                        type,
+                        total: count + 1,
+                        current: chunk[0],
+                        value: chunk[1]
+                    })
+                }
+            } else {
+                const jsonString = JSON.stringify({ type, from: this._uuid, to, data })
+                const bytes = new TextEncoder().encode(jsonString)
+                node.channel?.send(bytes)
+            }
         }
     }
 
@@ -206,6 +244,34 @@ export class Connections {
 
         connection?.setRemoteDescription(data.data)
             .catch((reason) => { console.log(reason) })
+    }
+
+    private readonly onChunkP2P = (data: Data): void => {
+        if (data.from === undefined) { return }
+
+        if (this._storages.get(data.data.uuid) === undefined) {
+            this._storages.set(data.data.uuid, {
+                type: data.data.type,
+                from: data.from,
+                total: data.data.total,
+                chunks: new Map<number, string>()
+            })
+        }
+
+        const storage = this._storages.get(data.data.uuid)
+        if (storage === undefined) { return }
+
+        storage.chunks.set(data.data.current, data.data.value)
+
+        if (storage.total === storage.chunks.size) {
+            const sorted = [...storage.chunks]
+                .sort((a, b) => { return a[0] - b[0] })
+                .map((chunk) => { return chunk[1] })
+
+            const result = sorted.join('')
+            this.onReceiveViaP2P(storage.type, storage.from, result)
+            this._storages.delete(data.data.uuid)
+        }
     }
 
     private readonly onChannelMessage = (message: MessageEvent): void => {
