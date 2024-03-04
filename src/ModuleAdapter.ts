@@ -23,6 +23,33 @@ export class ModuleAdapter {
     }
 
     public processFile (uuid: string, file: File | string): void {
+        const image = new Image()
+        const URLReader = new FileReader()
+
+        URLReader.onload = () => {
+            image.src = URLReader.result as string
+        }
+
+        image.onload = () => {
+            const megapixels = image.width * image.height / 1000000
+            const megabytes = megapixels * 300
+            this.onAddLog(`app: ${megapixels.toFixed(2)} megapixels (${megabytes.toFixed(2)} megabytes)`)
+
+            if (megabytes > 3500) {
+                this.onAddLog('app: memory limit would be exceeded, skipping')
+            } else {
+                this.enqueueFile(uuid, file)
+            }
+        }
+
+        if (typeof file === 'string') {
+            image.src = file
+        } else {
+            URLReader.readAsDataURL(file)
+        }
+    }
+
+    private enqueueFile (uuid: string, file: File | string): void {
         if (typeof file === 'string') {
             fetch(file).then(async res => await res.arrayBuffer()).then((arrayBuffer) => {
                 this._moduleWorker.postMessage({ uuid, array: arrayBuffer })
