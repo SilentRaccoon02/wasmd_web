@@ -11,8 +11,8 @@ type IAction = (data: Data) => void
 interface IStorages {
     type: DataType
     from: string
-    total: number
-    chunks: Map<number, string>
+    current: number
+    chunks: string[]
 }
 
 export class Connections {
@@ -26,7 +26,7 @@ export class Connections {
         ]
     }
 
-    private static readonly chunkSize = 10000
+    private static readonly chunkSize = 100000
 
     private _uuid: string | undefined
     private readonly _server = new WebSocket(`ws://${window.location.host}`)
@@ -101,15 +101,15 @@ export class Connections {
                 const last = data.length - count * Connections.chunkSize
                 const uuid = uuidv4()
 
-                const chunks = new Map<number, string>()
+                const chunks = new Array<string>(count + 1)
                 let offset = 0
 
                 for (let i = 0; i < count; ++i) {
-                    chunks.set(i, data.substring(offset, offset + Connections.chunkSize))
+                    chunks[i] = data.substring(offset, offset + Connections.chunkSize)
                     offset += Connections.chunkSize
                 }
 
-                chunks.set(count, data.substring(offset, offset + last))
+                chunks[count] = data.substring(offset, offset + last)
 
                 for (const chunk of chunks.entries()) {
                     this.sendViaP2P(DataType.P2P_CHUNK, to, {
@@ -253,22 +253,19 @@ export class Connections {
             this._storages.set(data.data.uuid, {
                 type: data.data.type,
                 from: data.from,
-                total: data.data.total,
-                chunks: new Map<number, string>()
+                current: 0,
+                chunks: new Array<string>(data.data.total)
             })
         }
 
         const storage = this._storages.get(data.data.uuid)
         if (storage === undefined) { return }
 
-        storage.chunks.set(data.data.current, data.data.value)
+        storage.chunks[data.data.current] = data.data.value
+        storage.current++
 
-        if (storage.total === storage.chunks.size) {
-            const sorted = [...storage.chunks]
-                .sort((a, b) => { return a[0] - b[0] })
-                .map((chunk) => { return chunk[1] })
-
-            const result = sorted.join('')
+        if (storage.current === storage.chunks.length) {
+            const result = storage.chunks.join('')
             this.onReceiveViaP2P(storage.type, storage.from, result)
             this._storages.delete(data.data.uuid)
         }
