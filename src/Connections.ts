@@ -142,6 +142,7 @@ export class Connections {
         connection.ondatachannel = (channelEvent) => {
             const node = this._nodes.get(uuid)
             const channel = channelEvent.channel
+            channel.binaryType = 'arraybuffer'
 
             channel.onopen = () => { this.onAddLog(`p2p: open ${uuid}`) }
             channel.onclose = () => { this.onAddLog(`p2p: close ${uuid}`) }
@@ -176,6 +177,7 @@ export class Connections {
         const uuid = data.from
         const connection = new RTCPeerConnection(Connections.configuration)
         const channel = connection.createDataChannel('channel')
+        channel.binaryType = 'arraybuffer'
 
         connection.onicecandidate = (ice) => {
             this.onAddLog(`ice: > ${ice.candidate?.candidate}`)
