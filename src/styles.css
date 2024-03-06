@@ -21,6 +21,13 @@ button {
     white-space: pre;
 }
 
+#module-logs {
+    margin: 4px;
+    font-family: monospace;
+    font-size: small;
+    white-space: pre;
+}
+
 .empty {
     height: 20px;
     width: 100%;

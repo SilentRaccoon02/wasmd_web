@@ -120,6 +120,10 @@ export class App {
             this._ui.addLog(text)
         }
 
+        this._moduleAdapter.onAddModuleLog = (text) => {
+            this._ui.addModuleLog(text)
+        }
+
         this._moduleAdapter.onUpdateState = (state) => {
             if (this._uuid === undefined) { return }
 

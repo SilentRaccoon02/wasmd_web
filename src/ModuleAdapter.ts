@@ -6,12 +6,25 @@ export class ModuleAdapter {
     private _completeCounter = 0
 
     public onAddLog = (text: string): void => {}
+    public onAddModuleLog = (text: string): void => {}
     public onUpdateState = (state: ModuleState): void => {}
     public onFileComplete = (uuid: string, blob: Blob): void => {}
 
     public constructor () {
         this._moduleWorker.onmessage = (event) => {
             const data = event.data
+
+            if (data.text !== undefined) {
+                const iter = data.text.match(/Iter\s+\d+/)
+
+                if (iter !== null) {
+                    const text = `file: ${this._completeCounter + 1} iter: ${iter[0].match(/\d+/)}`
+                    this.onAddModuleLog(text)
+                }
+
+                return
+            }
+
             const blob = new Blob([data.array])
             this.onAddLog(`app: complete in ${data.time} seconds`)
             this.onFileComplete(data.uuid, blob)

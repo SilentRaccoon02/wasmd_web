@@ -37,7 +37,7 @@ onmessage = (event) => {
     const start = performance.now()
     MODULE.FS.writeFile('in', new Uint8Array(data.array))
 
-    if (callWithArgs(['name', 'in', 'out']) !== 0) { return }
+    if (callWithArgs(['name', '--verbose', 'in', 'out']) !== 0) { return }
 
     const array = MODULE.FS.readFile('out')
     MODULE.FS.unlink('in')

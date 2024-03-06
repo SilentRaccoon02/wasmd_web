@@ -7,6 +7,7 @@ export class UI {
     private readonly _downloadFiles = document.getElementById('download-files') as HTMLButtonElement
     private readonly _nodes = document.getElementById('nodes') as HTMLDivElement
     private readonly _logs = document.getElementById('logs') as HTMLDivElement
+    private readonly _moduleLogs = document.getElementById('module-logs') as HTMLDivElement
 
     public onProcessFiles = (files: FileList): void => {}
     public onDownloadFiles = (): void => {}
@@ -44,6 +45,10 @@ export class UI {
         const log = document.createElement('div')
         log.innerText = `> ${text}`
         this._logs.appendChild(log)
+    }
+
+    public addModuleLog (text: string): void {
+        this._moduleLogs.innerText = `> ${text}`
     }
 
     public addNode (uuid: string): void {
