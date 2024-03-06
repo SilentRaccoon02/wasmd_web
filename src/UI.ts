@@ -6,8 +6,8 @@ export class UI {
     private readonly _processFiles = document.getElementById('process-files') as HTMLButtonElement
     private readonly _downloadFiles = document.getElementById('download-files') as HTMLButtonElement
     private readonly _nodes = document.getElementById('nodes') as HTMLDivElement
-    private readonly _logs = document.getElementById('logs') as HTMLDivElement
-    private readonly _moduleLogs = document.getElementById('module-logs') as HTMLDivElement
+    private readonly _appLogs = document.getElementById('app-logs') as HTMLDivElement
+    private readonly _connectionsLogs = document.getElementById('connections-logs') as HTMLDivElement
 
     public onProcessFiles = (files: FileList): void => {}
     public onDownloadFiles = (): void => {}
@@ -15,7 +15,7 @@ export class UI {
     public constructor () {
         this._inputFiles.onchange = () => {
             const files = this._inputFiles.files
-            if (files !== null) { this.addLog(`ui: selected ${files.length} files`) }
+            if (files !== null) { this.addAppLog(`ui: selected ${files.length} files`) }
         }
 
         this._selectFiles.onclick = () => {
@@ -26,29 +26,40 @@ export class UI {
             const files = this._inputFiles.files
 
             if (files !== null && files.length > 0) {
-                this.addLog(`ui: processing ${files.length} files`)
+                this.addAppLog(`ui: processing ${files.length} files`)
                 this.onProcessFiles(files)
             } else {
-                this.addLog('ui: no files selected')
+                this.addAppLog('ui: no files selected')
             }
         }
 
         this._downloadFiles.onclick = () => {
             this.onDownloadFiles()
         }
-    }
 
-    public addLog (text: string): void {
-        const count = this._logs.childElementCount
-        if (count >= 20) { this._logs.removeChild(this._logs.children[0]) }
-
-        const log = document.createElement('div')
-        log.innerText = `> ${text}`
-        this._logs.appendChild(log)
+        this._appLogs.appendChild(document.createElement('div'))
     }
 
     public addModuleLog (text: string): void {
-        this._moduleLogs.innerText = `> ${text}`
+        (this._appLogs.children[0] as HTMLDivElement).innerText = `> ${text}`
+    }
+
+    public addAppLog (text: string): void {
+        const count = this._appLogs.childElementCount
+        if (count >= 10) { this._appLogs.removeChild(this._appLogs.children[1]) }
+
+        const log = document.createElement('div')
+        log.innerText = `> ${text}`
+        this._appLogs.appendChild(log)
+    }
+
+    public addConnectionsLog (text: string): void {
+        const count = this._connectionsLogs.childElementCount
+        if (count >= 10) { this._connectionsLogs.removeChild(this._connectionsLogs.children[0]) }
+
+        const log = document.createElement('div')
+        log.innerText = `> ${text}`
+        this._connectionsLogs.appendChild(log)
     }
 
     public addNode (uuid: string): void {

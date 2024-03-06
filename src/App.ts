@@ -23,7 +23,7 @@ export class App {
         }
 
         this._connections.onAddLog = (text) => {
-            this._ui.addLog(text)
+            this._ui.addConnectionsLog(text)
         }
 
         this._connections.onAddNode = (uuid) => {
@@ -91,7 +91,7 @@ export class App {
         }
 
         this._ui.onDownloadFiles = () => {
-            this._ui.addLog(`ui: downloading ${this._completeFiles.length} files`)
+            this._ui.addAppLog(`ui: downloading ${this._completeFiles.length} files`)
 
             const zip = new JSZip()
             const folder = zip.folder('result')
@@ -117,7 +117,7 @@ export class App {
 
     private readonly initModuleAdapter = (thisUUID: string): void => {
         this._moduleAdapter.onAddLog = (text) => {
-            this._ui.addLog(text)
+            this._ui.addAppLog(text)
         }
 
         this._moduleAdapter.onAddModuleLog = (text) => {

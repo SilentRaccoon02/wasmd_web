@@ -135,7 +135,7 @@ export class Connections {
         const connection = new RTCPeerConnection(Connections.configuration)
 
         connection.onicecandidate = (ice) => {
-            // this.onAddLog(`ice: > ${ice.candidate?.candidate}`)
+            this.onAddLog(`ice: > ${ice.candidate?.candidate}`)
             this.sendViaServer(DataType.P2P_ICE, uuid, ice.candidate)
         }
 
@@ -180,7 +180,7 @@ export class Connections {
         channel.binaryType = 'arraybuffer'
 
         connection.onicecandidate = (ice) => {
-            // this.onAddLog(`ice: > ${ice.candidate?.candidate}`)
+            this.onAddLog(`ice: > ${ice.candidate?.candidate}`)
             this.sendViaServer(DataType.P2P_ICE, uuid, ice.candidate)
         }
 
@@ -216,7 +216,7 @@ export class Connections {
 
         const uuid = data.from
         const connection = this._nodes.get(uuid)?.connection
-        // this.onAddLog(`ice: < ${data.data?.candidate}`)
+        this.onAddLog(`ice: < ${data.data?.candidate}`)
 
         connection?.addIceCandidate(data.data)
             .catch((reason) => { console.log(reason) })

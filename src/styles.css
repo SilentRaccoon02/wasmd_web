@@ -14,14 +14,14 @@ button {
     font-weight: bold;
 }
 
-#logs {
+#app-logs {
     margin: 4px;
     font-family: monospace;
     font-size: small;
     white-space: pre;
 }
 
-#module-logs {
+#connections-logs {
     margin: 4px;
     font-family: monospace;
     font-size: small;

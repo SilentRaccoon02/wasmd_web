@@ -18,7 +18,7 @@ export class ModuleAdapter {
                 const iter = data.text.match(/Iter\s+\d+/)
 
                 if (iter !== null) {
-                    const text = `file: ${this._completeCounter + 1} iter: ${iter[0].match(/\d+/)}`
+                    const text = `app: file: ${this._completeCounter + 1} iter: ${iter[0].match(/\d+/)}`
                     this.onAddModuleLog(text)
                 }
 
