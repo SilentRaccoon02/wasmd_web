@@ -90,7 +90,10 @@ export class UI {
         if (node === null) { return }
 
         const connectionState = node.children[1] as HTMLDivElement
-        connectionState.innerText = `${state.signaling} ${state.connection}`
+        const signaling = `${state.signaling} `
+        const connection = `${state.connection} `
+        const speed = `(${state.speed?.toFixed(2)})speed`
+        connectionState.innerText = signaling + connection + speed
     }
 
     public updateModuleState (uuid: string, state: ModuleState): void {

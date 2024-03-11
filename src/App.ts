@@ -37,7 +37,6 @@ export class App {
         }
 
         this._connections.onUpdateState = (uuid, state) => {
-            this._ui.updateConnectionState(uuid, state)
             this._scheduler.updateConnectionState(uuid, state)
         }
 
@@ -58,11 +57,6 @@ export class App {
 
     private readonly initUI = (uuid: string): void => {
         this._ui.addNode(uuid)
-
-        this._ui.updateConnectionState(uuid, {
-            signaling: 'stable',
-            connection: 'connected'
-        })
 
         this._ui.onProcessFiles = (files: FileList): void => {
             if (this._uuid === undefined) { return }
@@ -107,11 +101,16 @@ export class App {
     }
 
     private readonly initScheduler = (uuid: string): void => {
+        this._scheduler.onUpdateConnectionState = (uuid, state) => {
+            this._ui.updateConnectionState(uuid, state)
+        }
+
         this._scheduler.addNode(uuid)
 
         this._scheduler.updateConnectionState(uuid, {
             signaling: 'stable',
-            connection: 'connected'
+            connection: 'connected',
+            speed: 10
         })
     }
 

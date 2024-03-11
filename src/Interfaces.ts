@@ -9,6 +9,7 @@ export enum DataType {
     P2P_OFFER = 'p2p-offer',
     P2P_ANSWER = 'p2p-answer',
     P2P_CHUNK = 'p2p-chunk',
+    P2P_SPEED = 'p2p-speed',
 
     FILE_PROCESS = 'file-process',
     FILE_RESULT = 'file-result',
@@ -25,6 +26,7 @@ export interface Data {
 export interface ConnectionState {
     signaling: RTCSignalingState | undefined
     connection: RTCPeerConnectionState | undefined
+    speed: number | undefined
 }
 
 export interface ModuleState {

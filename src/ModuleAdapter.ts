@@ -95,10 +95,14 @@ export class ModuleAdapter {
             bufferReader.readAsArrayBuffer(file)
         }
 
-        this.onUpdateState({
-            queued: ++this._queuedCounter,
-            complete: this._completeCounter,
-            benchmark: this._benchmark
-        })
+        if (this._queuedCounter !== -1) {
+            this.onUpdateState({
+                queued: ++this._queuedCounter,
+                complete: this._completeCounter,
+                benchmark: this._benchmark
+            })
+        } else {
+            this._queuedCounter++
+        }
     }
 }

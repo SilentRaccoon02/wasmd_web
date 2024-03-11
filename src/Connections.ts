@@ -13,6 +13,7 @@ interface IStorages {
     from: string
     current: number
     chunks: string[]
+    time: number
 }
 
 export class Connections {
@@ -26,7 +27,7 @@ export class Connections {
         ]
     }
 
-    private static readonly chunkSize = 100000
+    private static readonly chunkSize = 1024 * 128
 
     private _uuid: string | undefined
     private readonly _server = new WebSocket(`ws://${window.location.host}`)
@@ -75,6 +76,7 @@ export class Connections {
         this._actions.set(DataType.P2P_OFFER, this.onOfferP2P)
         this._actions.set(DataType.P2P_ANSWER, this.onAnswerP2P)
         this._actions.set(DataType.P2P_CHUNK, this.onChunkP2P)
+        this._actions.set(DataType.P2P_SPEED, this.onSpeedP2P)
         this._actions.set(DataType.FILE_PROCESS, this.receiveViaP2P)
         this._actions.set(DataType.FILE_RESULT, this.receiveViaP2P)
         this._actions.set(DataType.MODULE_STATE, this.receiveViaP2P)
@@ -110,16 +112,30 @@ export class Connections {
                 }
 
                 chunks[count] = data.substring(offset, offset + last)
+                let current = 0
 
-                for (const chunk of chunks.entries()) {
-                    this.sendViaP2P(DataType.P2P_CHUNK, to, {
-                        uuid,
-                        type,
-                        total: count + 1,
-                        current: chunk[0],
-                        value: chunk[1]
-                    })
+                const send = (): void => {
+                    while (current < chunks.length) {
+                        if (node.channel !== undefined &&
+                            node.channel.bufferedAmount > node.channel.bufferedAmountLowThreshold) {
+                            node.channel.onbufferedamountlow = () => {
+                                if (node.channel === undefined) { return }
+                                node.channel.onbufferedamountlow = null
+                                send()
+                            }
+
+                            return
+                        }
+
+                        this.sendViaP2P(DataType.P2P_CHUNK, to, {
+                            uuid, type, total: count + 1, current, value: chunks[current], time: Date.now()
+                        })
+
+                        current++
+                    }
                 }
+
+                send()
             } else {
                 const jsonString = JSON.stringify({ type, from: this._uuid, to, data })
                 const bytes = new TextEncoder().encode(jsonString)
@@ -155,14 +171,16 @@ export class Connections {
         connection.onsignalingstatechange = () => {
             this.onUpdateState(uuid, {
                 signaling: connection.signalingState,
-                connection: connection.connectionState
+                connection: connection.connectionState,
+                speed: undefined
             })
         }
 
         connection.onconnectionstatechange = () => {
             this.onUpdateState(uuid, {
                 signaling: connection.signalingState,
-                connection: connection.connectionState
+                connection: connection.connectionState,
+                speed: undefined
             })
         }
 
@@ -187,14 +205,16 @@ export class Connections {
         connection.onsignalingstatechange = () => {
             this.onUpdateState(uuid, {
                 signaling: connection.signalingState,
-                connection: connection.connectionState
+                connection: connection.connectionState,
+                speed: undefined
             })
         }
 
         connection.onconnectionstatechange = () => {
             this.onUpdateState(uuid, {
                 signaling: connection.signalingState,
-                connection: connection.connectionState
+                connection: connection.connectionState,
+                speed: undefined
             })
         }
 
@@ -256,7 +276,8 @@ export class Connections {
                 type: data.data.type,
                 from: data.from,
                 current: 0,
-                chunks: new Array<string>(data.data.total)
+                chunks: new Array<string>(data.data.total),
+                time: -1
             })
         }
 
@@ -266,11 +287,36 @@ export class Connections {
         storage.chunks[data.data.current] = data.data.value
         storage.current++
 
+        if (storage.time === -1) {
+            storage.time = data.data.time
+        }
+
         if (storage.current === storage.chunks.length) {
             const result = storage.chunks.join('')
+            const seconds = (Date.now() - storage.time) / 1000
+            const megabytes = result.length / (1024 * 1024)
+            const speed = megabytes / seconds
+
+            this.onUpdateState(data.from, {
+                signaling: undefined,
+                connection: undefined,
+                speed
+            })
+
+            this.sendViaP2P(DataType.P2P_SPEED, storage.from, speed)
             this.onReceiveViaP2P(storage.type, storage.from, result)
             this._storages.delete(data.data.uuid)
         }
+    }
+
+    private readonly onSpeedP2P = (data: Data): void => {
+        if (data.from === undefined) { return }
+
+        this.onUpdateState(data.from, {
+            connection: undefined,
+            signaling: undefined,
+            speed: data.data
+        })
     }
 
     private readonly onChannelMessage = (message: MessageEvent): void => {
