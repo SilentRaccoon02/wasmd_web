@@ -6,6 +6,7 @@ let MODULE: ExtendedModule
 
 Module().then((emscriptenModule: ExtendedModule) => {
     MODULE = emscriptenModule
+    postMessage({})
 })
 
 function strToPtr (str: string): number {
@@ -43,6 +44,6 @@ onmessage = (event) => {
     MODULE.FS.unlink('in')
     MODULE.FS.unlink('out')
 
-    const time = Math.round((performance.now() - start) / 1000)
+    const time = (performance.now() - start) / 1000
     postMessage({ uuid: data.uuid, array, time })
 }

@@ -11,7 +11,7 @@ export class Scheduler {
     public addNode (uuid: string): void {
         this._nodes.set(uuid, {
             connectionState: { signaling: undefined, connection: undefined },
-            moduleState: { queued: 0, complete: 0 }
+            moduleState: { queued: 0, complete: 0, benchmark: 0 }
         })
     }
 

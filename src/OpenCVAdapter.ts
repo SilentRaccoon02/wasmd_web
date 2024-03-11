@@ -4,6 +4,7 @@ export class OpenCVAdapter {
     private readonly _moduleWorker = new Worker(new URL('./OpenCVWorker.ts', import.meta.url))
     private _queuedCounter = 0
     private _completeCounter = 0
+    private readonly _benchmark = 0
 
     public onUpdateState = (state: ModuleState): void => {}
     public onFileComplete = (uuid: string, blob: Blob): void => {}
@@ -23,7 +24,8 @@ export class OpenCVAdapter {
                     this.onFileComplete(data.uuid, blob)
                     this.onUpdateState({
                         queued: this._queuedCounter,
-                        complete: ++this._completeCounter
+                        complete: ++this._completeCounter,
+                        benchmark: this._benchmark
                     })
                 }
             })
@@ -41,7 +43,8 @@ export class OpenCVAdapter {
         inImage.onload = () => {
             this.onUpdateState({
                 queued: ++this._queuedCounter,
-                complete: this._completeCounter
+                complete: this._completeCounter,
+                benchmark: this._benchmark
             })
 
             const canvas = document.createElement('canvas')

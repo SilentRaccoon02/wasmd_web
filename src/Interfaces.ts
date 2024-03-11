@@ -30,6 +30,7 @@ export interface ConnectionState {
 export interface ModuleState {
     queued: number
     complete: number
+    benchmark: number
 }
 
 export interface ExtendedModule extends EmscriptenModule {

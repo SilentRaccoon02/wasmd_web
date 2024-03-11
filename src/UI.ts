@@ -68,8 +68,8 @@ export class UI {
         const uuidDiv = document.createElement('div')
         const node = document.createElement('div')
 
-        connectionState.className = 'state'
-        moduleState.className = 'state'
+        connectionState.className = 'connection-state'
+        moduleState.className = 'module-state'
         uuidDiv.className = 'uuid'
         uuidDiv.innerText = uuid.substring(0, 8)
         node.className = 'node'
@@ -98,6 +98,9 @@ export class UI {
         if (node === null) { return }
 
         const moduleState = node.children[2] as HTMLDivElement
-        moduleState.innerText = `(${state.queued})queued (${state.complete})complete`
+        const queued = `(${state.queued})queued `
+        const complete = `(${state.complete})complete `
+        const benchmark = `(${(state.benchmark).toFixed(2)})benchmark`
+        moduleState.innerText = queued + complete + benchmark
     }
 }

@@ -2,8 +2,9 @@ import { type ModuleState } from './Interfaces'
 
 export class ModuleAdapter {
     private readonly _moduleWorker = new Worker(new URL('./ModuleWorker.ts', import.meta.url))
-    private _queuedCounter = 0
-    private _completeCounter = 0
+    private _queuedCounter = -1
+    private _completeCounter = -1
+    private _benchmark = 0
 
     public onAddLog = (text: string): void => {}
     public onAddModuleLog = (text: string): void => {}
@@ -14,11 +15,20 @@ export class ModuleAdapter {
         this._moduleWorker.onmessage = (event) => {
             const data = event.data
 
+            if (Object.keys(data).length === 0) {
+                this.processFile('benchmark', new URL('./benchmark.jpg', import.meta.url).href)
+
+                return
+            }
+
             if (data.text !== undefined) {
                 const iter = data.text.match(/Iter\s+\d+/)
 
                 if (iter !== null) {
-                    const text = `app: file: ${this._completeCounter + 1} iter: ${iter[0].match(/\d+/)}`
+                    const pre = this._completeCounter === -1
+                        ? 'benchmark'
+                        : `file: ${this._completeCounter + 1}`
+                    const text = `app: ${pre} iter: ${iter[0].match(/\d+/)}`
                     this.onAddModuleLog(text)
                 }
 
@@ -26,11 +36,19 @@ export class ModuleAdapter {
             }
 
             const blob = new Blob([data.array])
-            this.onAddLog(`app: complete in ${data.time} seconds`)
-            this.onFileComplete(data.uuid, blob)
+
+            if (data.uuid === 'benchmark') {
+                this._benchmark = (1 / data.time)
+                this.onAddLog(`app: complete with score ${this._benchmark.toFixed(2)}`)
+            } else {
+                this.onAddLog(`app: complete in ${data.time.toFixed(2)} seconds`)
+                this.onFileComplete(data.uuid, blob)
+            }
+
             this.onUpdateState({
                 queued: this._queuedCounter,
-                complete: ++this._completeCounter
+                complete: ++this._completeCounter,
+                benchmark: this._benchmark
             })
         }
     }
@@ -79,7 +97,8 @@ export class ModuleAdapter {
 
         this.onUpdateState({
             queued: ++this._queuedCounter,
-            complete: this._completeCounter
+            complete: this._completeCounter,
+            benchmark: this._benchmark
         })
     }
 }

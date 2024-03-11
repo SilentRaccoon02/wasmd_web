@@ -42,6 +42,10 @@ button {
     width: 20%;
 }
 
-.state {
-    width: 40%;
+.connection-state {
+    width: 30%;
+}
+
+.module-state {
+    width: 50%;
 }
