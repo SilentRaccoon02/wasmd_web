@@ -7,7 +7,7 @@ export class UI {
     private readonly _downloadFiles = document.getElementById('download-files') as HTMLButtonElement
     private readonly _nodes = document.getElementById('nodes') as HTMLDivElement
     private readonly _appLogs = document.getElementById('app-logs') as HTMLDivElement
-    private readonly _connectionsLogs = document.getElementById('connections-logs') as HTMLDivElement
+    private readonly _connectionLogs = document.getElementById('connection-logs') as HTMLDivElement
 
     public onProcessFiles = (files: FileList): void => {}
     public onDownloadFiles = (): void => {}
@@ -53,13 +53,13 @@ export class UI {
         this._appLogs.appendChild(log)
     }
 
-    public addConnectionsLog (text: string): void {
-        const count = this._connectionsLogs.childElementCount
-        if (count >= 10) { this._connectionsLogs.removeChild(this._connectionsLogs.children[0]) }
+    public addConnectionLog (text: string): void {
+        const count = this._connectionLogs.childElementCount
+        if (count >= 10) { this._connectionLogs.removeChild(this._connectionLogs.children[0]) }
 
         const log = document.createElement('div')
         log.innerText = `> ${text}`
-        this._connectionsLogs.appendChild(log)
+        this._connectionLogs.appendChild(log)
     }
 
     public addNode (uuid: string): void {

@@ -23,7 +23,7 @@ export class App {
         }
 
         this._connections.onAddLog = (text) => {
-            this._ui.addConnectionsLog(text)
+            this._ui.addConnectionLog(text)
         }
 
         this._connections.onAddNode = (uuid) => {

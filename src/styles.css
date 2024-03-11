@@ -21,7 +21,7 @@ button {
     white-space: pre;
 }
 
-#connections-logs {
+#connection-logs {
     margin: 4px;
     font-family: monospace;
     font-size: small;
