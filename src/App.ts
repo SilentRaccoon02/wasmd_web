@@ -22,6 +22,13 @@ export class App {
             this.initModuleAdapter(uuid)
         }
 
+        this._connections.onOpen = (uuid) => {
+            if (this._uuid === undefined) { return }
+            const state = this._scheduler.getModuleState(this._uuid)
+            if (state === undefined) { return }
+            this._connections.sendViaP2P(DataType.MODULE_STATE, uuid, state)
+        }
+
         this._connections.onAddLog = (text) => {
             this._ui.addConnectionLog(text)
         }
@@ -105,12 +112,22 @@ export class App {
             this._ui.updateConnectionState(uuid, state)
         }
 
+        this._scheduler.onUpdateModuleState = (uuid, state) => {
+            this._ui.updateModuleState(uuid, state)
+        }
+
         this._scheduler.addNode(uuid)
 
         this._scheduler.updateConnectionState(uuid, {
             signaling: 'stable',
             connection: 'connected',
-            speed: 10
+            speed: 9
+        })
+
+        this._scheduler.updateModuleState(uuid, {
+            queued: 0,
+            complete: 0,
+            benchmark: 0
         })
     }
 
@@ -126,7 +143,6 @@ export class App {
         this._moduleAdapter.onUpdateState = (state) => {
             if (this._uuid === undefined) { return }
 
-            this._ui.updateModuleState(this._uuid, state)
             this._scheduler.updateModuleState(this._uuid, state)
             this._connections.sendViaP2P(DataType.MODULE_STATE, '', state)
         }

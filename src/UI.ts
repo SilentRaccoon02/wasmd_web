@@ -15,7 +15,7 @@ export class UI {
     public constructor () {
         this._inputFiles.onchange = () => {
             const files = this._inputFiles.files
-            if (files !== null) { this.addAppLog(`ui: selected ${files.length} files`) }
+            if (files !== null) { this.addAppLog(`selected ${files.length} files`) }
         }
 
         this._selectFiles.onclick = () => {
@@ -26,10 +26,10 @@ export class UI {
             const files = this._inputFiles.files
 
             if (files !== null && files.length > 0) {
-                this.addAppLog(`ui: processing ${files.length} files`)
+                this.addAppLog(`processing ${files.length} files`)
                 this.onProcessFiles(files)
             } else {
-                this.addAppLog('ui: no files selected')
+                this.addAppLog('no files selected')
             }
         }
 
@@ -41,7 +41,7 @@ export class UI {
     }
 
     public addModuleLog (text: string): void {
-        (this._appLogs.children[0] as HTMLDivElement).innerText = `> ${text}`
+        (this._appLogs.children[0] as HTMLDivElement).innerText = `[${text}]`
     }
 
     public addAppLog (text: string): void {
@@ -71,7 +71,7 @@ export class UI {
         connectionState.className = 'connection-state'
         moduleState.className = 'module-state'
         uuidDiv.className = 'uuid'
-        uuidDiv.innerText = uuid.substring(0, 8)
+        uuidDiv.innerText = `[${uuid.substring(0, 8)}]`
         node.className = 'node'
         node.id = uuid
 
@@ -90,9 +90,9 @@ export class UI {
         if (node === null) { return }
 
         const connectionState = node.children[1] as HTMLDivElement
-        const signaling = `${state.signaling} `
+        const signaling = `[${state.signaling} `
         const connection = `${state.connection} `
-        const speed = `(${state.speed?.toFixed(2)})speed`
+        const speed = `${state.speed?.toFixed(2)} Mb/s]`
         connectionState.innerText = signaling + connection + speed
     }
 
@@ -101,9 +101,9 @@ export class UI {
         if (node === null) { return }
 
         const moduleState = node.children[2] as HTMLDivElement
-        const queued = `(${state.queued})queued `
-        const complete = `(${state.complete})complete `
-        const benchmark = `(${(state.benchmark).toFixed(2)})benchmark`
+        const queued = `[queued: ${state.queued} `
+        const complete = `complete: ${state.complete} `
+        const benchmark = `benchmark: ${(state.benchmark).toFixed(2)}]`
         moduleState.innerText = queued + complete + benchmark
     }
 }

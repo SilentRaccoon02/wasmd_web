@@ -9,6 +9,7 @@ export class Scheduler {
     private readonly _nodes = new Map<string, State>()
 
     public onUpdateConnectionState = (uuid: string, state: ConnectionState): void => {}
+    public onUpdateModuleState = (uuid: string, state: ModuleState): void => {}
 
     public addNode (uuid: string): void {
         this._nodes.set(uuid, {
@@ -36,6 +37,12 @@ export class Scheduler {
     public updateModuleState (uuid: string, state: ModuleState): void {
         const node = this._nodes.get(uuid)
         if (node !== undefined) { node.moduleState = state }
+
+        this.onUpdateModuleState(uuid, state)
+    }
+
+    public getModuleState (uuid: string): ModuleState | undefined {
+        return this._nodes.get(uuid)?.moduleState
     }
 
     public schedule (uuid: string, filesCount: number): Map<string, number> {

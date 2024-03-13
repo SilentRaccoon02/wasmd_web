@@ -35,17 +35,18 @@ export class Connections {
     private readonly _actions = new Map<DataType, IAction>()
     private readonly _storages = new Map<string, IStorages>()
 
+    public onUUID = (uuid: string): void => {}
+    public onOpen = (uuid: string): void => {}
     public onAddLog = (text: string): void => {}
     public onAddNode = (uuid: string): void => {}
     public onRemoveNode = (uuid: string): void => {}
     public onUpdateState = (uuid: string, state: ConnectionState): void => {}
     public onReceiveViaP2P = (type: DataType, from: string, data: any): void => {}
-    public onUUID = (uuid: string): void => {}
 
     public constructor () {
         this._server.binaryType = 'arraybuffer'
-        this._server.onopen = () => { this.onAddLog('ws: open') }
-        this._server.onclose = () => { this.onAddLog('ws: close') }
+        this._server.onopen = () => { this.onAddLog('websocket opened') }
+        this._server.onclose = () => { this.onAddLog('websocket closed') }
         this._server.onerror = (error) => { console.log(error) }
         this._server.onmessage = (message) => {
             const jsonString = new TextDecoder().decode(message.data)
@@ -151,8 +152,14 @@ export class Connections {
         const connection = new RTCPeerConnection(Connections.configuration)
 
         connection.onicecandidate = (ice) => {
-            this.onAddLog(`ice: > ${ice.candidate?.candidate}`)
             this.sendViaServer(DataType.P2P_ICE, uuid, ice.candidate)
+            const candidate = ice.candidate?.candidate
+
+            if (candidate !== undefined) {
+                this.onAddLog(`ice > ${candidate.substring(10)}`)
+            } else {
+                this.onAddLog('ice > no candidates left')
+            }
         }
 
         connection.ondatachannel = (channelEvent) => {
@@ -160,8 +167,12 @@ export class Connections {
             const channel = channelEvent.channel
             channel.binaryType = 'arraybuffer'
 
-            channel.onopen = () => { this.onAddLog(`p2p: open ${uuid}`) }
-            channel.onclose = () => { this.onAddLog(`p2p: close ${uuid}`) }
+            channel.onopen = () => {
+                this.onOpen(uuid)
+                this.onAddLog(`connection opened ${uuid}`)
+            }
+
+            channel.onclose = () => { this.onAddLog(`connection closed ${uuid}`) }
             channel.onerror = (error) => { console.log(error) }
             channel.onmessage = this.onChannelMessage
 
@@ -198,8 +209,14 @@ export class Connections {
         channel.binaryType = 'arraybuffer'
 
         connection.onicecandidate = (ice) => {
-            this.onAddLog(`ice: > ${ice.candidate?.candidate}`)
             this.sendViaServer(DataType.P2P_ICE, uuid, ice.candidate)
+            const candidate = ice.candidate?.candidate
+
+            if (candidate !== undefined) {
+                this.onAddLog(`ice > ${candidate.substring(10)}`)
+            } else {
+                this.onAddLog('ice > no candidates left')
+            }
         }
 
         connection.onsignalingstatechange = () => {
@@ -218,8 +235,12 @@ export class Connections {
             })
         }
 
-        channel.onopen = () => { this.onAddLog(`p2p: open ${uuid}`) }
-        channel.onclose = () => { this.onAddLog(`p2p: close ${uuid}`) }
+        channel.onopen = () => {
+            this.onOpen(uuid)
+            this.onAddLog(`connection opened ${uuid}`)
+        }
+
+        channel.onclose = () => { this.onAddLog(`connection closed ${uuid}`) }
         channel.onerror = (error) => { console.log(error) }
         channel.onmessage = this.onChannelMessage
         this._nodes.set(uuid, { connection, channel })
@@ -236,7 +257,13 @@ export class Connections {
 
         const uuid = data.from
         const connection = this._nodes.get(uuid)?.connection
-        this.onAddLog(`ice: < ${data.data?.candidate}`)
+        const candidate = data.data?.candidate
+
+        if (candidate !== undefined) {
+            this.onAddLog(`ice < ${candidate.substring(10)}`)
+        } else {
+            this.onAddLog('ice < no candidates left')
+        }
 
         connection?.addIceCandidate(data.data)
             .catch((reason) => { console.log(reason) })
