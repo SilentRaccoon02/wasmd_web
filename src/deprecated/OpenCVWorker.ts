@@ -1,6 +1,6 @@
 // @ts-expect-error emscripten
-import Module from './wasm/module'
-import { type ExtendedModule } from './Interfaces'
+import Module from '../wasm/module'
+import { type ExtendedModule } from '../Interfaces'
 
 let MODULE: ExtendedModule
 

@@ -23,6 +23,8 @@ export interface Data {
     data: any | undefined
 }
 
+export type IAction = (data: Data) => void
+
 export interface ConnectionState {
     signaling: RTCSignalingState | undefined
     connection: RTCPeerConnectionState | undefined

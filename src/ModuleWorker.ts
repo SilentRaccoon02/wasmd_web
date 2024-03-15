@@ -45,5 +45,5 @@ onmessage = (event) => {
     MODULE.FS.unlink('out')
 
     const time = (performance.now() - start) / 1000
-    postMessage({ uuid: data.uuid, array, time })
+    postMessage({ fileId: data.fileId, array, time })
 }

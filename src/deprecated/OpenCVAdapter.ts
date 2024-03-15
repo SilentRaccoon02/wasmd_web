@@ -1,4 +1,4 @@
-import { type ModuleState } from './Interfaces'
+import { type ModuleState } from '../Interfaces'
 
 export class OpenCVAdapter {
     private readonly _moduleWorker = new Worker(new URL('./OpenCVWorker.ts', import.meta.url))

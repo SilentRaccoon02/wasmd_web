@@ -1,12 +1,10 @@
-import { DataType, type Data, type ConnectionState } from './Interfaces'
+import { DataType, type Data, type ConnectionState, type IAction } from './Interfaces'
 import { v4 as uuidv4 } from 'uuid'
 
 interface IP2P {
     connection: RTCPeerConnection | undefined
     channel: RTCDataChannel | undefined
 }
-
-type IAction = (data: Data) => void
 
 interface IStorages {
     type: DataType
@@ -41,7 +39,7 @@ export class Connections {
     public onAddNode = (uuid: string): void => {}
     public onRemoveNode = (uuid: string): void => {}
     public onUpdateState = (uuid: string, state: ConnectionState): void => {}
-    public onReceiveViaP2P = (type: DataType, from: string, data: any): void => {}
+    public onReceiveViaP2P = (data: Data): void => {}
 
     public constructor () {
         this._server.binaryType = 'arraybuffer'
@@ -89,60 +87,63 @@ export class Connections {
         this._server.send(bytes)
     }
 
-    public sendViaP2P (type: DataType, to: string, data: any): void {
+    public sendViaP2P (type: DataType, to: string, data: any, chunk = false): void {
         if (to === '') {
             for (const uuid of this._nodes.keys()) {
                 this.sendViaP2P(type, uuid, data)
             }
-        } else {
-            const node = this._nodes.get(to)
-            if (node === undefined) { return }
-            if (node.connection?.connectionState !== 'connected') { return }
 
-            if (typeof data === 'string' && data.length > Connections.chunkSize) {
-                const count = Math.floor(data.length / Connections.chunkSize)
-                const last = data.length - count * Connections.chunkSize
-                const uuid = uuidv4()
-
-                const chunks = new Array<string>(count + 1)
-                let offset = 0
-
-                for (let i = 0; i < count; ++i) {
-                    chunks[i] = data.substring(offset, offset + Connections.chunkSize)
-                    offset += Connections.chunkSize
-                }
-
-                chunks[count] = data.substring(offset, offset + last)
-                let current = 0
-
-                const send = (): void => {
-                    while (current < chunks.length) {
-                        if (node.channel !== undefined &&
-                            node.channel.bufferedAmount > node.channel.bufferedAmountLowThreshold) {
-                            node.channel.onbufferedamountlow = () => {
-                                if (node.channel === undefined) { return }
-                                node.channel.onbufferedamountlow = null
-                                send()
-                            }
-
-                            return
-                        }
-
-                        this.sendViaP2P(DataType.P2P_CHUNK, to, {
-                            uuid, type, total: count + 1, current, value: chunks[current], time: Date.now()
-                        })
-
-                        current++
-                    }
-                }
-
-                send()
-            } else {
-                const jsonString = JSON.stringify({ type, from: this._uuid, to, data })
-                const bytes = new TextEncoder().encode(jsonString)
-                node.channel?.send(bytes)
-            }
+            return
         }
+
+        const node = this._nodes.get(to)
+        if (node === undefined) { return }
+        if (node.connection?.connectionState !== 'connected') { return }
+
+        const jsonData = chunk ? '' : JSON.stringify(data)
+
+        if (jsonData.length > Connections.chunkSize) {
+            const storageId = uuidv4()
+            const count = Math.floor(jsonData.length / Connections.chunkSize)
+            const last = jsonData.length - count * Connections.chunkSize
+
+            const chunks = new Array<string>(count + 1)
+            let offset = 0
+
+            for (let i = 0; i < count; ++i) {
+                chunks[i] = jsonData.substring(offset, offset + Connections.chunkSize)
+                offset += Connections.chunkSize
+            }
+
+            chunks[count] = jsonData.substring(offset, offset + last)
+
+            const sendChunk = (current: number, value: string): void => {
+                if (node.channel !== undefined &&
+                    node.channel.bufferedAmount > node.channel.bufferedAmountLowThreshold) {
+                    const callback = (): void => {
+                        if (node.channel === undefined) { return }
+                        node.channel.removeEventListener('bufferedamountlow', callback)
+                        sendChunk(current, value)
+                    }
+
+                    node.channel.addEventListener('bufferedamountlow', callback)
+                    return
+                }
+
+                this.sendViaP2P(DataType.P2P_CHUNK, to,
+                    { storageId, type, total: count + 1, current, value, time: Date.now() }, true)
+            }
+
+            for (let current = 0; current < chunks.length; ++current) {
+                sendChunk(current, chunks[current])
+            }
+
+            return
+        }
+
+        const jsonString = JSON.stringify({ type, from: this._uuid, to, data })
+        const bytes = new TextEncoder().encode(jsonString)
+        node.channel?.send(bytes)
     }
 
     private readonly onReqP2P = (data: Data): void => {
@@ -298,8 +299,8 @@ export class Connections {
     private readonly onChunkP2P = (data: Data): void => {
         if (data.from === undefined) { return }
 
-        if (this._storages.get(data.data.uuid) === undefined) {
-            this._storages.set(data.data.uuid, {
+        if (this._storages.get(data.data.storageId) === undefined) {
+            this._storages.set(data.data.storageId, {
                 type: data.data.type,
                 from: data.from,
                 current: 0,
@@ -308,7 +309,7 @@ export class Connections {
             })
         }
 
-        const storage = this._storages.get(data.data.uuid)
+        const storage = this._storages.get(data.data.storageId)
         if (storage === undefined) { return }
 
         storage.chunks[data.data.current] = data.data.value
@@ -331,8 +332,16 @@ export class Connections {
             })
 
             this.sendViaP2P(DataType.P2P_SPEED, storage.from, speed)
-            this.onReceiveViaP2P(storage.type, storage.from, result)
-            this._storages.delete(data.data.uuid)
+            if (this._uuid === undefined) { return }
+
+            this.onReceiveViaP2P({
+                type: storage.type,
+                from: storage.from,
+                to: this._uuid,
+                data: JSON.parse(result)
+            })
+
+            this._storages.delete(data.data.storageId)
         }
     }
 
@@ -353,6 +362,6 @@ export class Connections {
     }
 
     private readonly receiveViaP2P = (data: Data): void => {
-        if (data.from !== undefined) { this.onReceiveViaP2P(data.type, data.from, data.data) }
+        if (data.from !== undefined) { this.onReceiveViaP2P(data) }
     }
 }
