@@ -45,7 +45,7 @@ export class ModuleAdapter {
             const blob = new Blob([data.array])
 
             if (data.fileId === 'benchmark') {
-                this._benchmark = (1 / data.time * 100)
+                this._benchmark = (60 / data.time)
                 this.onAddLog(`task complete with score ${this._benchmark.toFixed(2)}`)
             } else {
                 this.onFileComplete(data.fileId, blob)

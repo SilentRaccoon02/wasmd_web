@@ -37,6 +37,11 @@ export interface ModuleState {
     benchmark: number
 }
 
+export interface SchedulerState {
+    deviation: number
+    thresh: number
+}
+
 export interface ExtendedModule extends EmscriptenModule {
     lengthBytesUTF8: typeof lengthBytesUTF8
     stringToUTF8: typeof stringToUTF8

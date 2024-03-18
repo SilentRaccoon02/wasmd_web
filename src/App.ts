@@ -3,13 +3,13 @@ import saveAs from 'file-saver'
 import { Connections } from './Connections'
 import { ModuleAdapter } from './ModuleAdapter'
 import { UI } from './UI'
-import { type ConnectionState, DataType, type ModuleState, type IAction, type Data } from './Interfaces'
+import { type ConnectionState, type ModuleState, DataType, type Data, type IAction } from './Interfaces'
 import { v4 as uuidv4 } from 'uuid'
 
 interface Task {
     sourceFile: File
     resultFile: File | undefined
-    scheduled: boolean
+    node: string | undefined
 }
 
 interface State {
@@ -18,6 +18,8 @@ interface State {
 }
 
 export class App {
+    private static readonly thresh = 3
+
     private _uuid: string | undefined
     private readonly _ui = new UI()
     private readonly _connections = new Connections()
@@ -27,6 +29,8 @@ export class App {
     private readonly _nodes = new Map<string, State>()
     private readonly _tasks = new Map<string, Task>()
     private readonly _dict = new Map<string, string>()
+
+    private _time = 0
 
     public constructor () {
         this._actions.set(DataType.FILE_PROCESS, this.onProcessFile)
@@ -40,7 +44,7 @@ export class App {
             this.updateConnectionState(uuid, {
                 signaling: 'stable',
                 connection: 'connected',
-                speed: 9
+                speed: 10
             })
 
             this.updateModuleState(uuid, {
@@ -49,8 +53,8 @@ export class App {
                 benchmark: 0
             })
 
-            this.prepareUI(uuid)
-            this.prepareModuleAdapter(uuid)
+            this.prepareUI()
+            this.prepareModuleAdapter()
         }
 
         this._connections.onOpen = (uuid) => {
@@ -99,6 +103,10 @@ export class App {
     private removeNode (uuid: string): void {
         this._nodes.delete(uuid)
         this._ui.removeNode(uuid)
+
+        for (const task of this._tasks.values()) {
+            if (task.node === uuid) { task.node = undefined }
+        }
     }
 
     private updateConnectionState (uuid: string, state: ConnectionState): void {
@@ -120,53 +128,19 @@ export class App {
         this._ui.updateModuleState(uuid, state)
     }
 
-    private readonly prepareUI = (uuid: string): void => {
+    private prepareUI (): void {
         this._ui.onProcessFiles = (files: FileList): void => {
             for (const file of files) {
                 const fileId = uuidv4()
                 this._tasks.set(fileId, {
                     sourceFile: file,
                     resultFile: undefined,
-                    scheduled: false
+                    node: undefined
                 })
             }
 
-            const schedule = (node: [string, State]): boolean => {
-                for (const task of this._tasks.entries()) {
-                    if (!task[1].scheduled) {
-                        if (node[0] === uuid) {
-                            this._dict.set(task[0], uuid)
-                            this._moduleAdapter.processFile(task[0], task[1].sourceFile)
-                            task[1].scheduled = true
-                            return true
-                        }
-
-                        const URLReader = new FileReader()
-
-                        URLReader.onload = () => {
-                            this._connections.sendViaP2P(DataType.FILE_PROCESS, node[0], {
-                                fileId: task[0],
-                                sourceFile: URLReader.result
-                            })
-                        }
-
-                        URLReader.readAsDataURL(task[1].sourceFile)
-                        task[1].scheduled = true
-                        return true
-                    }
-                }
-
-                return false
-            }
-
-            let ready = false
-
-            while (!ready) {
-                for (const node of this._nodes) {
-                    const value = schedule(node)
-                    if (!value) { ready = true }
-                }
-            }
+            this._time = performance.now()
+            this.processFiles()
         }
 
         this._ui.onDownloadFiles = () => {
@@ -188,7 +162,7 @@ export class App {
         }
     }
 
-    private readonly prepareModuleAdapter = (uuid: string): void => {
+    private prepareModuleAdapter (): void {
         this._moduleAdapter.onAddLog = (text) => { this._ui.addAppLog(text) }
         this._moduleAdapter.onAddModuleLog = (text) => { this._ui.addModuleLog(text) }
 
@@ -204,7 +178,7 @@ export class App {
             this._dict.delete(fileId)
             if (to === undefined) { return }
 
-            if (to === uuid) {
+            if (to === this._uuid) {
                 const task = this._tasks.get(fileId)
                 if (task === undefined) { return }
 
@@ -223,5 +197,144 @@ export class App {
 
             URLReader.readAsDataURL(blob)
         }
+    }
+
+    private readonly processFiles = (): void => {
+        const unscheduled = this.findUnscheduledTask()
+
+        if (unscheduled === undefined) {
+            if (this.checkComplete()) {
+                const time = (performance.now() - this._time) / (60 * 1000)
+                this._ui.addAppLog(`work complete in ${time.toFixed(2)} minutes`)
+                this._ui.clearSchedulerState()
+                return
+            }
+
+            setTimeout(this.processFiles, 1000)
+            return
+        }
+
+        const uuid = this.selectNodeV3()
+
+        if (uuid !== undefined) {
+            this.scheduleTask(uuid, unscheduled)
+            setTimeout(this.processFiles, 100)
+            return
+        }
+
+        setTimeout(this.processFiles, 1000)
+    }
+
+    private findUnscheduledTask (): [string, Task] | undefined {
+        for (const task of this._tasks.entries()) {
+            if (task[1].resultFile === undefined && task[1].node === undefined) {
+                return task
+            }
+        }
+
+        return undefined
+    }
+
+    private checkComplete (): boolean {
+        for (const task of this._tasks.values()) {
+            if (task.resultFile === undefined) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    private selectNodeV1 (): string | undefined {
+        let minDelta = Number.MAX_SAFE_INTEGER
+        let minNode
+
+        for (const node of this._nodes) {
+            const queued = node[1].moduleState.queued
+            const complete = node[1].moduleState.complete
+            const delta = queued - complete
+
+            if (delta < minDelta) {
+                minDelta = delta
+                minNode = node[0]
+            }
+        }
+
+        return minNode
+    }
+
+    private selectNodeV2 (): string | undefined {
+        let minDelta = Number.MAX_SAFE_INTEGER
+        let minNode
+
+        for (const node of this._nodes) {
+            const queued = node[1].moduleState.queued
+            const complete = node[1].moduleState.complete
+            const delta = queued - complete
+
+            if (delta < minDelta && delta < App.thresh) {
+                minDelta = delta
+                minNode = node[0]
+            }
+        }
+
+        return minNode
+    }
+
+    private selectNodeV3 (): string | undefined {
+        let totalCount = 0
+        let totalBenchmark = 0
+
+        for (const node of this._nodes) {
+            if (node[1].moduleState.benchmark > 0) {
+                totalCount++
+                totalBenchmark += node[1].moduleState.benchmark
+            }
+        }
+
+        let minNode
+        let minDelta = Number.MAX_SAFE_INTEGER
+        const avgBenchmark = totalBenchmark === 0 ? 0 : totalBenchmark / totalCount
+
+        for (const node of this._nodes) {
+            const benchmark = node[1].moduleState.benchmark
+            if (benchmark === 0) { continue }
+
+            const queued = node[1].moduleState.queued
+            const complete = node[1].moduleState.complete
+            const delta = queued - complete
+
+            const deviation = (benchmark - avgBenchmark) / avgBenchmark
+            const thresh = Math.round(App.thresh * deviation + App.thresh)
+            this._ui.updateSchedulerState(node[0], { deviation, thresh })
+
+            if (delta < minDelta && delta < thresh) {
+                minDelta = delta
+                minNode = node[0]
+            }
+        }
+
+        return minNode
+    }
+
+    private scheduleTask (uuid: string, task: [string, Task]): void {
+        task[1].node = uuid
+
+        if (uuid === this._uuid) {
+            this._dict.set(task[0], uuid)
+            this._moduleAdapter.processFile(task[0], task[1].sourceFile)
+            return
+        }
+
+        const URLReader = new FileReader()
+
+        URLReader.onload = () => {
+            this._connections.sendViaP2P(DataType.FILE_PROCESS, uuid, {
+                fileId: task[0],
+                sourceFile: URLReader.result
+            })
+        }
+
+        URLReader.readAsDataURL(task[1].sourceFile)
     }
 }

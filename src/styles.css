@@ -33,18 +33,22 @@ button {
 }
 
 .node {
-    width: 600px;
+    width: 800px;
     display: flex;
 }
 
 .uuid {
-    width: 15%;
+    width: 12%;
 }
 
 .connection-state {
-    width: 35%;
+    width: 27%;
 }
 
 .module-state {
-    width: 50%;
+    width: 36%;
+}
+
+.scheduler-state {
+    width: 25%;
 }

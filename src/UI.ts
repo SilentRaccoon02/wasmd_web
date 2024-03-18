@@ -1,4 +1,4 @@
-import { type ConnectionState, type ModuleState } from './Interfaces'
+import { type SchedulerState, type ConnectionState, type ModuleState } from './Interfaces'
 
 export class UI {
     private readonly _inputFiles = document.getElementById('input-files') as HTMLInputElement
@@ -65,11 +65,13 @@ export class UI {
     public addNode (uuid: string): void {
         const connectionState = document.createElement('div')
         const moduleState = document.createElement('div')
+        const schedulerState = document.createElement('div')
         const uuidDiv = document.createElement('div')
         const node = document.createElement('div')
 
         connectionState.className = 'connection-state'
         moduleState.className = 'module-state'
+        schedulerState.className = 'scheduler-state'
         uuidDiv.className = 'uuid'
         uuidDiv.innerText = `[${uuid.substring(0, 8)}]`
         node.className = 'node'
@@ -78,6 +80,7 @@ export class UI {
         node.appendChild(uuidDiv)
         node.appendChild(connectionState)
         node.appendChild(moduleState)
+        node.appendChild(schedulerState)
         this._nodes.appendChild(node)
     }
 
@@ -103,7 +106,23 @@ export class UI {
         const moduleState = node.children[2] as HTMLDivElement
         const queued = `[queued: ${state.queued} `
         const complete = `complete: ${state.complete} `
-        const benchmark = `benchmark: ${(state.benchmark).toFixed(2)}]`
+        const benchmark = `benchmark: ${state.benchmark.toFixed(2)}]`
         moduleState.innerText = queued + complete + benchmark
+    }
+
+    public updateSchedulerState (uuid: string, state: SchedulerState): void {
+        const node = document.getElementById(uuid)
+        if (node === null) { return }
+
+        const schedulerState = node.children[3] as HTMLDivElement
+        const deviation = (state.deviation < 0 ? '' : '+') + state.deviation.toFixed(2)
+        schedulerState.innerText = `[deviation: ${deviation} thresh: ${state.thresh}]`
+    }
+
+    public clearSchedulerState (): void {
+        for (const child of this._nodes.children) {
+            const schedulerState = child.children[3] as HTMLDivElement
+            schedulerState.innerText = ''
+        }
     }
 }
