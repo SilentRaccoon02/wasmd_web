@@ -11,7 +11,11 @@ interface IStorages {
     from: string
     current: number
     chunks: string[]
+}
+
+interface ITimestamp {
     time: number
+    length: number
 }
 
 export class Connections {
@@ -32,6 +36,7 @@ export class Connections {
     private readonly _nodes = new Map<string, IP2P>()
     private readonly _actions = new Map<DataType, IAction>()
     private readonly _storages = new Map<string, IStorages>()
+    private readonly _timestamps = new Map<string, ITimestamp>()
 
     public onUUID = (uuid: string): void => {}
     public onOpen = (uuid: string): void => {}
@@ -75,6 +80,7 @@ export class Connections {
         this._actions.set(DataType.P2P_OFFER, this.onOfferP2P)
         this._actions.set(DataType.P2P_ANSWER, this.onAnswerP2P)
         this._actions.set(DataType.P2P_CHUNK, this.onChunkP2P)
+        this._actions.set(DataType.P2P_COMPLETE, this.onCompleteP2P)
         this._actions.set(DataType.P2P_SPEED, this.onSpeedP2P)
         this._actions.set(DataType.FILE_PROCESS, this.receiveViaP2P)
         this._actions.set(DataType.FILE_RESULT, this.receiveViaP2P)
@@ -133,6 +139,8 @@ export class Connections {
                 this.sendViaP2P(DataType.P2P_CHUNK, to,
                     { storageId, type, total: count + 1, current, value, time: Date.now() }, true)
             }
+
+            this._timestamps.set(storageId, { time: performance.now(), length: jsonData.length })
 
             for (let current = 0; current < chunks.length; ++current) {
                 sendChunk(current, chunks[current])
@@ -304,8 +312,7 @@ export class Connections {
                 type: data.data.type,
                 from: data.from,
                 current: 0,
-                chunks: new Array<string>(data.data.total),
-                time: -1
+                chunks: new Array<string>(data.data.total)
             })
         }
 
@@ -315,34 +322,40 @@ export class Connections {
         storage.chunks[data.data.current] = data.data.value
         storage.current++
 
-        if (storage.time === -1) {
-            storage.time = data.data.time
-        }
-
         if (storage.current === storage.chunks.length) {
-            const result = storage.chunks.join('')
-            const seconds = (Date.now() - storage.time) / 1000
-            const megabytes = result.length / (1024 * 1024)
-            const speed = megabytes / seconds
-
-            this.onUpdateState(data.from, {
-                signaling: undefined,
-                connection: undefined,
-                speed
-            })
-
-            this.sendViaP2P(DataType.P2P_SPEED, storage.from, speed)
             if (this._uuid === undefined) { return }
+
+            this.sendViaP2P(DataType.P2P_COMPLETE, storage.from, data.data.storageId)
 
             this.onReceiveViaP2P({
                 type: storage.type,
                 from: storage.from,
                 to: this._uuid,
-                data: JSON.parse(result)
+                data: JSON.parse(storage.chunks.join(''))
             })
 
             this._storages.delete(data.data.storageId)
         }
+    }
+
+    private readonly onCompleteP2P = (data: Data): void => {
+        if (data.from === undefined) { return }
+
+        const timestamp = this._timestamps.get(data.data)
+        if (timestamp === undefined) { return }
+
+        const seconds = (performance.now() - timestamp.time) / 1000
+        const megabytes = timestamp.length / (1024 * 1024)
+        const speed = megabytes / seconds
+
+        this.onUpdateState(data.from, {
+            signaling: undefined,
+            connection: undefined,
+            speed
+        })
+
+        this.sendViaP2P(DataType.P2P_SPEED, data.from, speed)
+        this._timestamps.delete(data.data)
     }
 
     private readonly onSpeedP2P = (data: Data): void => {
