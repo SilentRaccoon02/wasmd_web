@@ -18,7 +18,7 @@ interface State {
 }
 
 export class App {
-    private static readonly thresh = 3
+    private static readonly thresh = 2
 
     private _uuid: string | undefined
     private readonly _ui = new UI()
@@ -31,6 +31,7 @@ export class App {
     private readonly _dict = new Map<string, string>()
 
     private _time = 0
+    private _schedule = false
 
     public constructor () {
         this._actions.set(DataType.FILE_PROCESS, this.onProcessFile)
@@ -59,7 +60,7 @@ export class App {
 
         this._connections.onOpen = (uuid) => {
             if (this._uuid === undefined) { return }
-            const state = this._nodes.get(uuid)?.moduleState
+            const state = this._nodes.get(this._uuid)?.moduleState
             if (state === undefined) { return }
             this._connections.sendViaP2P(DataType.MODULE_STATE, uuid, state)
         }
@@ -124,7 +125,7 @@ export class App {
     private updateModuleState (uuid: string, state: ModuleState): void {
         const node = this._nodes.get(uuid)
         if (node !== undefined) { node.moduleState = state }
-
+        if (this._schedule) { this.processFiles() }
         this._ui.updateModuleState(uuid, state)
     }
 
@@ -140,6 +141,7 @@ export class App {
             }
 
             this._time = performance.now()
+            this._schedule = true
             this.processFiles()
         }
 
@@ -204,25 +206,17 @@ export class App {
 
         if (unscheduled === undefined) {
             if (this.checkComplete()) {
+                this._schedule = false
                 const time = (performance.now() - this._time) / (60 * 1000)
                 this._ui.addAppLog(`work complete in ${time.toFixed(2)} minutes`)
                 this._ui.clearSchedulerState()
-                return
             }
 
-            setTimeout(this.processFiles, 1000)
             return
         }
 
         const uuid = this.selectNodeV3()
-
-        if (uuid !== undefined) {
-            this.scheduleTask(uuid, unscheduled)
-            setTimeout(this.processFiles, 100)
-            return
-        }
-
-        setTimeout(this.processFiles, 1000)
+        if (uuid !== undefined) { this.scheduleTask(uuid, unscheduled) }
     }
 
     private findUnscheduledTask (): [string, Task] | undefined {
