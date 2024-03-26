@@ -1,4 +1,5 @@
 export enum DataType {
+    SET_UUID = 'set-uuid',
     NODE_UUID = 'node-uuid',
     NODE_LIST = 'node-list',
     NODE_CLOSE = 'node-close',

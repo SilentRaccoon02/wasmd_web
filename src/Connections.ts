@@ -57,9 +57,12 @@ export class Connections {
             this._actions.get(data.type)?.(data)
         }
 
-        this._actions.set(DataType.NODE_UUID, (data) => {
+        this._actions.set(DataType.SET_UUID, (data) => {
+            if (data.from === undefined) { return }
+
             this._uuid = data.to
             this.onUUID(data.to)
+            this.sendViaServer(DataType.NODE_UUID, data.from, undefined)
         })
         this._actions.set(DataType.NODE_LIST, (data) => {
             data.data.forEach((uuid: string) => {
@@ -70,7 +73,7 @@ export class Connections {
         })
         this._actions.set(DataType.NODE_CLOSE, (data) => {
             const uuid = data.data
-            this.onAddLog(`ws: close ${uuid}`)
+            this.onAddLog(`websocket close ${uuid}`)
             this._nodes.delete(uuid)
             this.onRemoveNode(uuid)
         })
