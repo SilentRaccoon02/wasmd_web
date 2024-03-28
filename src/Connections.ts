@@ -32,8 +32,10 @@ export class Connections {
     private static readonly chunkSize = 1024 * 128
 
     private _uuid: string | undefined
+    private _serverUUID: string | undefined
     private readonly _server = new WebSocket(`ws://${window.location.host}`)
     private readonly _nodes = new Map<string, IP2P>()
+    private readonly _servers = new Array<string>()
     private readonly _actions = new Map<DataType, IAction>()
     private readonly _storages = new Map<string, IStorages>()
     private readonly _timestamps = new Map<string, ITimestamp>()
@@ -61,21 +63,28 @@ export class Connections {
             if (data.from === undefined) { return }
 
             this._uuid = data.to
+            this._serverUUID = data.from
             this.onUUID(data.to)
             this.sendViaServer(DataType.NODE_UUID, data.from, undefined)
         })
         this._actions.set(DataType.NODE_LIST, (data) => {
-            data.data.forEach((uuid: string) => {
+            for (const uuid of data.data) {
                 this.sendViaServer(DataType.P2P_REQ, uuid, undefined)
                 this._nodes.set(uuid, { connection: undefined, channel: undefined })
                 this.onAddNode(uuid)
-            })
+            }
         })
         this._actions.set(DataType.NODE_CLOSE, (data) => {
             const uuid = data.data
             this.onAddLog(`websocket close ${uuid}`)
             this._nodes.delete(uuid)
             this.onRemoveNode(uuid)
+        })
+        this._actions.set(DataType.SERVER_LIST, (data) => {
+            for (const uuid of data.data) {
+                this._servers.push(uuid)
+                this.onAddNode(uuid)
+            }
         })
         this._actions.set(DataType.P2P_REQ, this.onReqP2P)
         this._actions.set(DataType.P2P_RES, this.onResP2P)
@@ -90,21 +99,34 @@ export class Connections {
         this._actions.set(DataType.MODULE_STATE, this.receiveViaP2P)
     }
 
-    public sendViaServer (type: DataType, to: string, data: any): void {
-        const jsonString = JSON.stringify({ type, from: this._uuid, to, data })
-        const bytes = new TextEncoder().encode(jsonString)
-        this._server.send(bytes)
-    }
-
-    public sendViaP2P (type: DataType, to: string, data: any, chunk = false): void {
+    public send (type: DataType, to: string, data: any): void {
         if (to === '') {
             for (const uuid of this._nodes.keys()) {
                 this.sendViaP2P(type, uuid, data)
             }
 
+            if (this._serverUUID !== undefined) {
+                this.sendViaServer(type, this._serverUUID, data)
+            }
+
             return
         }
 
+        if (this._nodes.get(to) !== undefined) {
+            this.sendViaP2P(type, to, data)
+            return
+        }
+
+        this.sendViaServer(type, to, data)
+    }
+
+    private sendViaServer (type: DataType, to: string, data: any): void {
+        const jsonString = JSON.stringify({ type, from: this._uuid, to, data })
+        const bytes = new TextEncoder().encode(jsonString)
+        this._server.send(bytes)
+    }
+
+    private sendViaP2P (type: DataType, to: string, data: any, chunk = false): void {
         const node = this._nodes.get(to)
         if (node === undefined) { return }
         if (node.connection?.connectionState !== 'connected') { return }

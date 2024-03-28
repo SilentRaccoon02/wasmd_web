@@ -3,6 +3,8 @@ export enum DataType {
     NODE_UUID = 'node-uuid',
     NODE_LIST = 'node-list',
     NODE_CLOSE = 'node-close',
+    SERVER_UUID = 'server-uuid',
+    SERVER_LIST = 'server-list',
 
     P2P_REQ = 'p2p-req',
     P2P_RES = 'p2p-res',

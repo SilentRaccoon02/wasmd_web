@@ -37,6 +37,12 @@ button {
     display: flex;
 }
 
+.node-bold {
+    width: 800px;
+    display: flex;
+    font-weight: bold;
+}
+
 .uuid {
     width: 12%;
 }

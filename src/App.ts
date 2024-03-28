@@ -62,7 +62,7 @@ export class App {
             if (this._uuid === undefined) { return }
             const state = this._nodes.get(this._uuid)?.moduleState
             if (state === undefined) { return }
-            this._connections.sendViaP2P(DataType.MODULE_STATE, uuid, state)
+            this._connections.send(DataType.MODULE_STATE, uuid, state)
         }
 
         this._connections.onAddLog = (text) => { this._ui.addConnectionLog(text) }
@@ -84,6 +84,7 @@ export class App {
             const task = this._tasks.get(data.data.fileId)
             if (task === undefined) { return }
             task.resultFile = new File([blob], `${task.sourceFile.name}.jpg`)
+            if (this._schedule) { this.processFiles() }
         }).catch((reason) => { console.log(reason) })
     }
 
@@ -125,6 +126,13 @@ export class App {
     private updateModuleState (uuid: string, state: ModuleState): void {
         const node = this._nodes.get(uuid)
         if (node !== undefined) { node.moduleState = state }
+
+        if (state.benchmark === 0) {
+            for (const task of this._tasks.values()) {
+                if (task.node === uuid) { task.node = undefined }
+            }
+        }
+
         if (this._schedule) { this.processFiles() }
         this._ui.updateModuleState(uuid, state)
     }
@@ -146,7 +154,6 @@ export class App {
         }
 
         this._ui.onDownloadFiles = () => {
-            console.log(this._tasks)
             this._ui.addAppLog('ui: downloading files')
 
             const zip = new JSZip()
@@ -172,7 +179,7 @@ export class App {
             if (this._uuid === undefined) { return }
 
             this.updateModuleState(this._uuid, state)
-            this._connections.sendViaP2P(DataType.MODULE_STATE, '', state)
+            this._connections.send(DataType.MODULE_STATE, '', state)
         }
 
         this._moduleAdapter.onFileComplete = (fileId, blob) => {
@@ -191,7 +198,7 @@ export class App {
             const URLReader = new FileReader()
 
             URLReader.onload = () => {
-                this._connections.sendViaP2P(DataType.FILE_RESULT, to, {
+                this._connections.send(DataType.FILE_RESULT, to, {
                     fileId,
                     resultFile: URLReader.result
                 })
@@ -323,7 +330,7 @@ export class App {
         const URLReader = new FileReader()
 
         URLReader.onload = () => {
-            this._connections.sendViaP2P(DataType.FILE_PROCESS, uuid, {
+            this._connections.send(DataType.FILE_PROCESS, uuid, {
                 fileId: task[0],
                 sourceFile: URLReader.result
             })

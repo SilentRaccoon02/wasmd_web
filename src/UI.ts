@@ -103,6 +103,8 @@ export class UI {
         const node = document.getElementById(uuid)
         if (node === null) { return }
 
+        node.className = state.benchmark < 10 ? 'node' : 'node-bold'
+
         const moduleState = node.children[2] as HTMLDivElement
         const queued = `[queued: ${state.queued} `
         const complete = `complete: ${state.complete} `
