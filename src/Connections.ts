@@ -1,19 +1,19 @@
 import { DataType, type Data, type ConnectionState, type IAction } from './Interfaces'
 import { v4 as uuidv4 } from 'uuid'
 
-interface IP2P {
+interface P2P {
     connection: RTCPeerConnection | undefined
     channel: RTCDataChannel | undefined
 }
 
-interface IStorages {
+interface Storage {
     type: DataType
     from: string
     current: number
     chunks: string[]
 }
 
-interface ITimestamp {
+interface Timestamp {
     time: number
     length: number
 }
@@ -34,11 +34,10 @@ export class Connections {
     private _uuid: string | undefined
     private _serverUUID: string | undefined
     private readonly _server = new WebSocket(`ws://${window.location.host}`)
-    private readonly _nodes = new Map<string, IP2P>()
-    private readonly _servers = new Array<string>()
+    private readonly _nodes = new Map<string, P2P>()
     private readonly _actions = new Map<DataType, IAction>()
-    private readonly _storages = new Map<string, IStorages>()
-    private readonly _timestamps = new Map<string, ITimestamp>()
+    private readonly _storages = new Map<string, Storage>()
+    private readonly _timestamps = new Map<string, Timestamp>()
 
     public onUUID = (uuid: string): void => {}
     public onOpen = (uuid: string): void => {}
@@ -82,7 +81,6 @@ export class Connections {
         })
         this._actions.set(DataType.SERVER_LIST, (data) => {
             for (const uuid of data.data) {
-                this._servers.push(uuid)
                 this.onAddNode(uuid)
             }
         })

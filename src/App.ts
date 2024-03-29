@@ -222,7 +222,7 @@ export class App {
             return
         }
 
-        const uuid = this.selectNodeV3()
+        const uuid = this.selectNode()
         if (uuid !== undefined) { this.scheduleTask(uuid, unscheduled) }
     }
 
@@ -246,47 +246,11 @@ export class App {
         return true
     }
 
-    private selectNodeV1 (): string | undefined {
-        let minDelta = Number.MAX_SAFE_INTEGER
-        let minNode
-
-        for (const node of this._nodes) {
-            const queued = node[1].moduleState.queued
-            const complete = node[1].moduleState.complete
-            const delta = queued - complete
-
-            if (delta < minDelta) {
-                minDelta = delta
-                minNode = node[0]
-            }
-        }
-
-        return minNode
-    }
-
-    private selectNodeV2 (): string | undefined {
-        let minDelta = Number.MAX_SAFE_INTEGER
-        let minNode
-
-        for (const node of this._nodes) {
-            const queued = node[1].moduleState.queued
-            const complete = node[1].moduleState.complete
-            const delta = queued - complete
-
-            if (delta < minDelta && delta < App.thresh) {
-                minDelta = delta
-                minNode = node[0]
-            }
-        }
-
-        return minNode
-    }
-
-    private selectNodeV3 (): string | undefined {
+    private selectNode (): string | undefined {
         let totalCount = 0
         let totalBenchmark = 0
 
-        for (const node of this._nodes) {
+        for (const node of this._nodes.entries()) {
             if (node[1].moduleState.benchmark > 0) {
                 totalCount++
                 totalBenchmark += node[1].moduleState.benchmark
@@ -297,7 +261,7 @@ export class App {
         let minDelta = Number.MAX_SAFE_INTEGER
         const avgBenchmark = totalBenchmark === 0 ? 0 : totalBenchmark / totalCount
 
-        for (const node of this._nodes) {
+        for (const node of this._nodes.entries()) {
             const benchmark = node[1].moduleState.benchmark
             if (benchmark === 0) { continue }
 
