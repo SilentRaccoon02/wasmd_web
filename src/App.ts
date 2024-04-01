@@ -43,8 +43,8 @@ export class App {
             this.addNode(uuid)
 
             this.updateConnectionState(uuid, {
-                signaling: 'stable',
-                connection: 'connected',
+                signaling: undefined,
+                connection: undefined,
                 speed: 10
             })
 
@@ -100,6 +100,11 @@ export class App {
         })
 
         this._ui.addNode(uuid)
+        this.updateConnectionState(uuid, {
+            signaling: undefined,
+            connection: undefined,
+            speed: 0
+        })
     }
 
     private removeNode (uuid: string): void {

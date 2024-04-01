@@ -93,8 +93,8 @@ export class UI {
         if (node === null) { return }
 
         const connectionState = node.children[1] as HTMLDivElement
-        const signaling = `[${state.signaling} `
-        const connection = `${state.connection} `
+        const signaling = `[${state.signaling ?? 'none'} `
+        const connection = `${state.connection ?? 'none'} `
         const speed = `${state.speed?.toFixed(2)} Mb/s]`
         connectionState.innerText = signaling + connection + speed
     }

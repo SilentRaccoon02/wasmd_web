@@ -55,6 +55,12 @@ export class Connections {
         this._server.onmessage = (message) => {
             const jsonString = new TextDecoder().decode(message.data)
             const data = JSON.parse(jsonString)
+
+            if (this._serverUUID !== undefined &&
+                (data.type === DataType.FILE_PROCESS || data.type === DataType.FILE_RESULT)) {
+                this.sendViaServer(DataType.WS_COMPLETE, this._serverUUID, data.data.fileId)
+            }
+
             this._actions.get(data.type)?.(data)
         }
 
@@ -95,6 +101,8 @@ export class Connections {
         this._actions.set(DataType.FILE_PROCESS, this.receiveViaP2P)
         this._actions.set(DataType.FILE_RESULT, this.receiveViaP2P)
         this._actions.set(DataType.MODULE_STATE, this.receiveViaP2P)
+        this._actions.set(DataType.WS_COMPLETE, this.onCompleteWS)
+        this._actions.set(DataType.WS_SPEED, this.onSpeedWS)
     }
 
     public send (type: DataType, to: string, data: any): void {
@@ -121,6 +129,14 @@ export class Connections {
     private sendViaServer (type: DataType, to: string, data: any): void {
         const jsonString = JSON.stringify({ type, from: this._uuid, to, data })
         const bytes = new TextEncoder().encode(jsonString)
+
+        if (type === DataType.FILE_PROCESS || type === DataType.FILE_RESULT) {
+            this._timestamps.set(data.fileId, {
+                time: performance.now(),
+                length: jsonString.length
+            })
+        }
+
         this._server.send(bytes)
     }
 
@@ -388,6 +404,28 @@ export class Connections {
             connection: undefined,
             signaling: undefined,
             speed: data.data
+        })
+    }
+
+    private readonly onCompleteWS = (data: Data): void => {
+        if (this._serverUUID === undefined) { return }
+
+        const timestamp = this._timestamps.get(data.data)
+        if (timestamp === undefined) { return }
+
+        const seconds = (performance.now() - timestamp.time) / 1000
+        const megabytes = timestamp.length / (1024 * 1024)
+        const speed = megabytes / seconds
+
+        this.sendViaServer(DataType.WS_SPEED, this._serverUUID, speed)
+        this._timestamps.delete(data.data)
+    }
+
+    private readonly onSpeedWS = (data: Data): void => {
+        this.onUpdateState(data.data.uuid, {
+            signaling: undefined,
+            connection: undefined,
+            speed: data.data.speed
         })
     }
 

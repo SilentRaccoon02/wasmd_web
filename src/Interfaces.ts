@@ -17,7 +17,10 @@ export enum DataType {
 
     FILE_PROCESS = 'file-process',
     FILE_RESULT = 'file-result',
-    MODULE_STATE = 'module-state'
+    MODULE_STATE = 'module-state',
+
+    WS_COMPLETE = 'ws-complete',
+    WS_SPEED = 'ws-speed'
 }
 
 export interface Data {
