@@ -219,8 +219,8 @@ export class App {
         if (unscheduled === undefined) {
             if (this.checkComplete()) {
                 this._schedule = false
-                const time = (performance.now() - this._time) / (60 * 1000)
-                this._ui.addAppLog(`work complete in ${time.toFixed(2)} minutes`)
+                const time = (performance.now() - this._time) / 1000
+                this._ui.addAppLog(`work complete in ${time.toFixed(2)} seconds`)
                 this._ui.clearSchedulerState()
             }
 
