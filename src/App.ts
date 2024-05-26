@@ -1,7 +1,8 @@
 import JSZip from 'jszip'
 import saveAs from 'file-saver'
 import { Connections } from './Connections'
-import { ModuleAdapter } from './ModuleAdapter'
+// import { ModuleAdapter } from './ModuleAdapter'
+import { OpenCVAdapter } from './OpenCVAdapter'
 import { UI } from './UI'
 import { type ConnectionState, type ModuleState, DataType, type Data, type IAction } from './Interfaces'
 import { v4 as uuidv4 } from 'uuid'
@@ -18,14 +19,14 @@ interface State {
 }
 
 export class App {
-    private static readonly thresh = 2
-    private static readonly speedFactor = 0.2
-    private static readonly benchmarkFactor = 0.8
+    private static readonly thresh = 8
+    private static readonly speedFactor = 0.8
+    private static readonly benchmarkFactor = 0.2
 
     private _uuid: string | undefined
     private readonly _ui = new UI()
     private readonly _connections = new Connections()
-    private readonly _moduleAdapter = new ModuleAdapter()
+    private readonly _moduleAdapter = new OpenCVAdapter()
 
     private readonly _actions = new Map<DataType, IAction>()
     private readonly _nodes = new Map<string, State>()

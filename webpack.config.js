@@ -1,5 +1,6 @@
-import path from 'path'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
+import path from 'path'
+import webpack from 'webpack'
 
 const DIR = path.resolve()
 
@@ -30,6 +31,10 @@ export default {
     plugins: [
         new HtmlWebpackPlugin({
             template: './index.html'
+        }),
+        new webpack.IgnorePlugin({
+            resourceRegExp: /ModuleAdapter$/
+            // resourceRegExp: /OpenCVAdapter$/
         })
     ]
 }

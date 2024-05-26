@@ -1,17 +1,19 @@
 // @ts-expect-error emscripten
-import Module from '../wasm/module'
-import { type ExtendedModule } from '../Interfaces'
+import Module from './wasm/module'
+import { type ExtendedModule } from './Interfaces'
 
 let MODULE: ExtendedModule
 
 Module().then((emscriptenModule: ExtendedModule) => {
     MODULE = emscriptenModule
+    postMessage({})
 })
 
 onmessage = (event) => {
     if (MODULE === undefined) { return }
 
     const data = event.data
+    const start = performance.now()
     const processImage = MODULE.cwrap('run', 'number', ['number', 'number', 'number'])
 
     const dataSize = data.inData.length * data.inData.BYTES_PER_ELEMENT
@@ -25,5 +27,6 @@ onmessage = (event) => {
     MODULE._free(inPointer)
     MODULE._free(outPointer)
 
-    postMessage({ uuid: data.uuid, outImage, width: data.width, height: data.height })
+    const time = (performance.now() - start) / 1000
+    postMessage({ fileId: data.fileId, outImage, width: data.width, height: data.height, time })
 }
