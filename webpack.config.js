@@ -33,8 +33,8 @@ export default {
             template: './index.html'
         }),
         new webpack.IgnorePlugin({
-            resourceRegExp: /ModuleAdapter$/
-            // resourceRegExp: /OpenCVAdapter$/
+            // resourceRegExp: /ModuleAdapter$/
+            resourceRegExp: /OpenCVAdapter$/
         })
     ]
 }
